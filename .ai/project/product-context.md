@@ -23,7 +23,7 @@ Rails owns validation, authentication, orchestration and presentation. PostgreSQ
 
 ## Confirmed operational baseline
 
-A-07–A-09 are approved: local Linux/macOS, English UI/docs and accessible controls; malformed JSON 400, server-reserved client fields 422, explicit timeout policy and analytics error statuses. MIT, owner-only review/merge, GitHub Actions, no automatic releases, git revert rollback and generator-based local recovery with explicit deletion are confirmed. Details and outstanding choices: [decisions](decisions.md). No implementation is started.
+A-05–A-09 are approved: deterministic top-event ties, zero-based error indexes, half-open UTC daily buckets and persistent local database volumes; local Linux/macOS, English UI/docs and accessible controls; malformed JSON 400, server-reserved client fields 422, explicit timeout policy and analytics error statuses. MIT, owner-only review/merge, GitHub Actions, no automatic releases, git revert rollback and generator-based local recovery with explicit deletion are confirmed. Details and outstanding choices: [decisions](decisions.md). No implementation is started.
 
 ## Current authorization
 
