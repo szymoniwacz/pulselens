@@ -1,10 +1,10 @@
 # Roadmap
 
-Source: [definition issue #1](https://github.com/szymoniwacz/pulselens/issues/1). Requirements: [definition-5](../docs/project-requirements.md). Issues below are a prepared backlog, not execution authorization. No product work has started.
+Source: [definition issue #1](https://github.com/szymoniwacz/pulselens/issues/1). Requirements: [scaffold-1](../docs/project-requirements.md). Only scaffold #3 is currently authorized through review-ready PR; later backlog issues are not execution authorization.
 
 ## Current — definition and readiness
 
-Definition, A-01–A-09 approvals and readiness-safe bootstrap for #2 are prepared in PR #12. Product README/AGENTS customization is complete; readiness passes on this branch under the greenfield command-deferral exception. Owner review/merge and verification of #2 on the actual target branch remain prerequisites for #3. Versions/client/timeouts/sorting stay delegated to #3/#5/#7. No product implementation or merge is authorized by this handoff.
+Definition and readiness #1/#2 are integrated by PR #12 (main 1081c21); #3 dependency preflight passed. The owner authorized scaffold #3 through a PR without merge. #3 supplies actual runtime pins/commands, local dependencies, operational endpoints, RSpec and initial product CI. Domain applications/auth, event schema/client, ingestion, analytics and dashboard remain future tasks; their dependencies must be verified after #3 merges.
 
 | Order | Goal | Issue | Blocked by | Requirements |
 |---|---|---|---|---|
@@ -39,4 +39,4 @@ Dependencies are prerequisites, not merely a display order. Verify actual implem
 
 ## Deferred
 
-Out-of-scope ideas are not delivery commitments. Revisit only with a new approved scope. See [scope](scope.md). The project readiness gate is recorded for the PR branch. Complete owner review/integration and rerun dependency preflight before any separately authorized product delivery.
+Out-of-scope ideas are not delivery commitments. Revisit only with a new approved scope. See [scope](scope.md). Readiness #2 is integrated. Complete scaffold #3 review/integration and rerun each dependent goal preflight before separately authorized domain work.

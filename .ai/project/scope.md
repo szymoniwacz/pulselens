@@ -2,7 +2,7 @@
 
 ## Current authorized work
 
-Define the project from [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), record approved decisions and dependency-ordered issues, and complete readiness-safe bootstrap from [issue #2](https://github.com/szymoniwacz/pulselens/issues/2) in PR #12. Record branch-level readiness and validation for final owner review; stop before product implementation and merge.
+Issue #3 is authorized through implementation, validation and a review-ready PR, without merge. Definition/readiness from #1/#2 is integrated by PR #12. In this goal, add Rails scaffold, local database dependencies/configuration, process/dependency health, actual setup/run/test/lint/build commands, initial service-backed CI and directly related documentation. Domain applications/authentication, event schema/client, ingestion, analytics and dashboard remain outside #3.
 
 ## MVP delivery scope after readiness and execution authorization
 

@@ -4,7 +4,7 @@
 
 PulseLens is a local, synthetic-data event analytics portfolio demo. Its approved stack is a Rails API and server-rendered dashboard, PostgreSQL application metadata/API authentication, ClickHouse event analytics, Docker Compose and RSpec.
 
-This branch contains project definition and readiness-safe bootstrap only; no Rails product code exists yet. Product setup/run/test/build/lint/typecheck commands and service-backed CI are explicitly deferred to scaffold issue #3. Do not substitute commands from reusable profile examples.
+The scaffold from issue #3 provides operational health endpoints and local dependencies; domain features remain in later issues. Real setup/run/test/build/lint commands live in README.md and bin/check. There is no static typechecker; the Rails autoload check is documented. Use .ruby-version and Gemfile.lock, not commands from reusable profile examples.
 
 Read `.ai/project/product-context.md`, `.ai/project/scope.md` and `.ai/docs/project-requirements.md` for product boundaries, approved decisions, the active Rails profile and readiness evidence. Review and merge remain with the owner. A completed definition or readiness check does not authorize product implementation by itself.
 

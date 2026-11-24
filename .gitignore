@@ -20,3 +20,16 @@
 .env
 .env.*
 !.env.example
+
+# Rails runtime, local Bundler install and generated assets.
+.bundle/
+vendor/bundle/
+/log/*
+!/log/.keep
+/tmp/*
+!/tmp/pids/
+/tmp/pids/*
+!/tmp/pids/.keep
+/public/assets/
+/config/master.key
+/config/credentials*.yml.enc
