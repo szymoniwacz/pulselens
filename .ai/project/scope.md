@@ -20,7 +20,7 @@ Detailed contracts: [requirements](../docs/project-requirements.md). Sequence an
 
 User accounts/roles; public hosting; queues/workers or asynchronous ingestion; deduplication or exactly-once guarantees; retention analytics, funnels/cohorts; revenue/currency analytics; materialized views; Kafka; separate frontend; real analytics providers or personal data.
 
-Event storage TTL and lifecycle are unspecified, separate from the excluded retention-analysis feature. Resolve the proposed no-TTL local-data policy during readiness; no automatic deletion is authorized.
+Local demo data recovery via the generator and deletion only by explicit command are confirmed (D-007). The explicit-deletion rule excludes automatic TTL. The persistent-volume proposal in A-06 still needs confirmation; production backup services are outside the local MVP. No automatic deletion is authorized.
 
 ## Scope changes
 
