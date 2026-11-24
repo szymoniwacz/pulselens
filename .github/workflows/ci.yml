@@ -52,10 +52,11 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-      - name: Start real services using the local Compose configuration
-        run: docker compose up -d --wait
-      - name: Prepare empty application database
-        run: bin/rails db:prepare
+      - name: Verify clean-checkout setup with real services
+        run: |
+          # CI credentials are exported above; the wrapper must preserve them.
+          touch .env
+          env -u RAILS_ENV bin/setup
       - name: Specs, lint and autoload check
         run: bin/check
       - name: Build assets without deployment credentials
