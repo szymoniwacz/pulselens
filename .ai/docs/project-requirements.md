@@ -1,6 +1,6 @@
 # Project Requirements
 
-Revision: definition-2, 2026-11-24. Source: [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), no comments at initial definition time. Owner confirmations: conversation dated 2026-11-24, recorded as D-004–D-008 in [decisions](../project/decisions.md). Backlog: [roadmap](../project/roadmap.md).
+Revision: definition-3, 2026-11-24. Source: [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), no comments at initial definition time. Owner confirmations: conversation dated 2026-11-24, recorded as D-004–D-010 in [decisions](../project/decisions.md). Backlog: [roadmap](../project/roadmap.md).
 
 ## Project summary
 
@@ -37,17 +37,17 @@ See [scope](../project/scope.md): no accounts/roles, public deployment, queues/w
 
 ## Functional requirements
 
-All rows are must-have MVP outcomes from issue #1 plus explicit owner clarifications D-004–D-008. Technical representations remain proposals where marked.
+All rows are must-have MVP outcomes from issue #1 plus explicit owner clarifications D-004–D-010. Technical representations remain proposals where marked.
 
 | ID | Requirement | Verification |
 |---|---|---|
 | FR-001 | Command creates application with UUID, name, key digest and timestamps; cryptographically random key shown once, digest only stored; Bearer auth; no key logging | Creation, persistence and authentication specs; log inspection |
 | FR-002 | Events contain authenticated application_id, client event_id UUID, required name/user_id, occurred_at and server received_at, platform/country and object properties; versioned ClickHouse setup | Schema and real-database round trip |
 | FR-003 | POST /api/v1/events accepts 1–1000 events; validates all before one batch insert; rejects client-supplied application_id or received_at with 422; no automatic insert retry | Request specs plus real ClickHouse; prove invalid batch writes nothing |
-| FR-004 | Missing platform/country → unknown; missing properties → {}; timestamp timezone required, normalize UTC; explicit field/properties/body limits; errors identify index and field | Boundary and normalization specs |
+| FR-004 | Missing platform/country → unknown; missing properties → {}; timestamp timezone required, normalize UTC; explicit field/properties/body limits; errors identify zero-based index and field | Boundary and normalization specs |
 | FR-005 | Ingestion: 201 only after confirmed insert with accepted count; 401 missing/invalid key; 400 malformed JSON; 413 oversized body; 422 invalid batch or client-supplied server-reserved fields; 503 ClickHouse unavailable | HTTP contract and dependency-failure specs |
 | FR-006 | GET /api/v1/analytics uses Bearer key; required from/to, from < to, at most 90 days, UTC [from,to); optional name/platform/country combine with AND; safe binding and application scope in every query; invalid filters return 422, unavailable dependency returns 503 | Filter, injection, isolation and timestamp boundary tests |
-| FR-007 | ClickHouse computes total events, exact range unique users, daily events and exact daily users, top 10 names; deterministic ties, zero days, zero empty counters and empty top list | Known fixture comparisons; repeated users across days; partial-day/empty ranges |
+| FR-007 | ClickHouse computes total events, exact range unique users, daily events and exact daily users, top 10 names; ties ordered count DESC/name ASC, daily UTC dates intersecting [from,to) (excluding an exact-midnight to day), zero days, zero empty counters and empty top list | Known fixture comparisons; repeated users across days; partial-day/empty ranges |
 | FR-008 | Local single-page dashboard: server-side application selection, dates and dimension filters, counters, daily chart, top table, empty/error states; same analytics service; no keys sent to browser | System/request checks; API/dashboard parity; rendered output inspection |
 | FR-009 | Generator accepts event count, date range and seed; at least two applications, returning users, multiple names/platforms/countries, reproducible nonuniform activity; bounded-memory batches; supports 1 million events; no implicit deletion | Fixed-seed equality, count/distribution checks, multi-batch test and full demo run |
 | FR-010 | Environment config and secret-free example; explicit connection/query timeouts; versioned schema; documented rebuild; separate liveness and dependency readiness; useful secret-free errors | Fresh setup, unavailable dependency checks and rebuild documentation |
@@ -108,7 +108,7 @@ Only synthetic user identifiers and properties. Store digests only; never log ke
 
 ## Proposal approval register
 
-Approval source: owner's conversation reply dated 2026-11-24, recorded in D-004–D-008. Accepted policy is distinct from implemented behavior. No product readiness or execution authorization is implied.
+Approval source: owner's conversation reply dated 2026-11-24, recorded in D-004–D-010. Accepted policy is distinct from implemented behavior. No product readiness or execution authorization is implied.
 
 | ID | Status | Value / remaining choice | Confirmation / return trigger |
 |---|---|---|---|
@@ -116,8 +116,8 @@ Approval source: owner's conversation reply dated 2026-11-24, recorded in D-004�
 | A-02 | unapproved | name ≤128 UTF-8 bytes, user_id ≤256 bytes, properties serialized JSON ≤16 KiB/event, body ≤2 MiB | Owner confirms before ingestion; limits apply together, so 1000 individually valid large events need not fit |
 | A-03 | unapproved | SHA-256 digest of at least 256 random key bits, indexed digest lookup | Owner security confirmation before #4 |
 | A-04 | partially delegated | DateTime64(3, UTC) and monthly partitions still proposed; final sorting key is delegated, not selected | Owner confirms precision/partition policy in #2; #5 selects and justifies sorting key/library/transport |
-| A-05 | unapproved | Top ties count DESC/name ASC; zero-based error indexes; daily UTC dates intersecting [from,to), excluding an exact-midnight to day | Owner confirmation before ingestion/analytics |
-| A-06 | partially approved | Generator rebuild, deletion only by explicit command and consequently no automatic TTL accepted. Persistent local volumes remain proposed; a production backup service is outside the local MVP | Owner confirms remaining lifecycle in #2 before persistence; do not infer blanket reset authorization |
+| A-05 | approved | Top ties count DESC/name ASC; zero-based error indexes; daily UTC dates intersecting [from,to), excluding an exact-midnight to day | D-009; #6/#7 document and test the confirmed contract |
+| A-06 | approved | Persistent local database volumes preserve data across ordinary restarts. Generator recovery, explicit-command-only deletion and no automatic TTL remain confirmed; production backup service outside MVP | D-007/D-010; #3/#5 document volume lifecycle; no blanket reset authorization |
 | A-07 | approved | Local Linux/macOS with Compose; English UI/docs; labelled keyboard-usable controls and textual chart equivalents | D-004; actual runtime versions and tested compatibility recorded in #3 |
 | A-08 | approved with clarification | Uppercase ISO country codes; reject null/invalid optional values; malformed JSON →400; client-supplied server-reserved application_id/received_at →422 | D-005; ingestion #6 documents and tests the contract |
 | A-09 | approved; values delegated | Finite connection/insert/query deadlines, one write attempt; analytics invalid filters →422, dependency failure →503 | D-006; #5/#7 choose and justify actual timeout values |
@@ -126,7 +126,7 @@ Approval source: owner's conversation reply dated 2026-11-24, recorded in D-004�
 
 No missing information blocks this documentation update. Unapproved policy choices below remain prerequisites for dependent product work; they do not prevent definition coverage.
 
-- Owner in #2: remaining A-01 stack/boundaries, A-02 input limits, A-03 key design, A-04 timestamp precision/partitions, A-05 ordering/index/day conventions and remaining A-06 persistent-volume choice. A-07–A-09 no longer require reconfirmation.
+- Owner in #2: remaining A-01 stack/boundaries, A-02 input limits, A-03 key design, A-04 timestamp precision/partitions. A-05–A-09 no longer require reconfirmation.
 - Confirmed ownership baseline: retain the existing LICENSE attribution ©2026 Szymon Iwacz; review and merge remain with the repository owner. MIT, GitHub Actions, no automatic MVP releases, git revert rollback and generator recovery with explicit deletion are confirmed; no additional maintenance commitment is invented.
 - Delegated by owner, not a new approval question: #3 selects and justifies compatible versions; #5 selects and justifies ClickHouse library/transport, final sorting key and client timeouts; #7 records any analytics-specific timeout choice. Select within approved component/security/data boundaries and escalate only material scope changes.
 - Scaffold: record real commands and local binding; no runtime compatibility claims until tested. Customization and profile selection remain in #2; no scaffold is created during this documentation task.
@@ -162,11 +162,11 @@ The smallest useful vertical slice is one application, HTTP ingestion and correc
 | First useful version | decided | Small end-to-end MVP; no platform expansion | Source #1 MVP requirements; First useful version |
 | Non-goals | decided | Explicit exclusions preserved | Source #1 Out of scope; scope.md |
 | Interfaces | decided | HTTP ingestion/analytics, local dashboard and operator commands | Source #1 §§1,3–6; FR-001/003/006/008/009 |
-| Inputs and outputs | decided | Synthetic events, filters, counters/series and key; malformed JSON 400, server-reserved fields 422 | Source #1; D-005; data/output tables; A-02/04/05 encoding details pending |
+| Inputs and outputs | decided | Synthetic events, filters, counters/series and key; malformed JSON 400, server-reserved fields 422 | Source #1; D-005; data/output tables; A-02/04 encoding details pending; A-05 confirmed by D-009 |
 | Architecture shape | deferred | Source technical proposal needs confirmation; no architecture selected by this definition | Owner/readiness: A-01 and boundaries before scaffold; does not block definition |
 | Boundaries | deferred | Proposed Rails/PostgreSQL/ClickHouse responsibilities | Owner/readiness before product; does not block definition |
-| Storage and data ownership | deferred | Proposed PG application/key digests, CH events, local synthetic operator data | Owner/readiness A-01/03/04/06; does not block definition |
-| Retention and migrations | deferred | Versioned setup required; generator recovery, explicit-command-only deletion and no automatic TTL confirmed; persistent-volume choice still proposed | Owner/readiness remaining A-06; #5 implements lifecycle; does not block definition |
+| Storage and data ownership | deferred | Proposed PG application/key digests, CH events, local synthetic operator data | Owner/readiness A-01/03/04; persistent volumes confirmed D-010; does not block definition |
+| Retention and migrations | decided | Versioned setup required; persistent volumes across ordinary restarts; generator recovery, explicit-command-only deletion and no automatic TTL confirmed | Source #1 §7; D-007/D-010; #3/#5 implement and document lifecycle |
 | Integrations and failure handling | decided | No write retry; finite deadlines; analytics invalid filters 422/unavailable dependency 503; actual client/timeouts delegated | D-006/D-008; #5/#7 record and justify library/deadline values |
 | Authentication and authorization | deferred | Bearer/application isolation required; digest mechanism and local dashboard trust need confirmation | Owner/readiness A-03 before auth work; does not block definition |
 | Secrets, privacy, and sensitive data | decided | Synthetic only, digest-only keys, no key logging/browser exposure | Source #1 §§1,3,5,7; Security; D-002 |
