@@ -11,7 +11,7 @@
 ## Repository
 
 - Current state: workflow adapter only; no Rails scaffold, product schema, product tests or product CI.
-- Proposed stack: Rails API and server-rendered dashboard, PostgreSQL application configuration/authentication, ClickHouse event analytics, Docker Compose and RSpec; GitHub Actions CI is confirmed (D-007).
+- Proposed stack: Rails API and server-rendered dashboard, PostgreSQL application configuration/authentication, ClickHouse event analytics and RSpec; Docker Compose is confirmed (D-004), as is GitHub Actions CI (D-007).
 - Remaining stack/policy proposals await confirmation; the owner delegated versions, ClickHouse library, timeout values and final sorting choice to the relevant future tasks; see [requirements](../docs/project-requirements.md).
 - Existing adapter checks: `bash tests/test-adapter.sh`, `bash scripts/check-workflow-leak.sh`.
 - Product setup/run/test/lint/build/typecheck commands do not exist yet. Record real commands in the scaffold goal; do not copy stack-profile placeholders.

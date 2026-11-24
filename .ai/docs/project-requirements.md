@@ -82,7 +82,7 @@ All rows are must-have MVP outcomes from issue #1 plus explicit owner clarificat
 
 ## Integrations and technical preferences
 
-Proposed architecture: synchronous Rails API/dashboard → PostgreSQL for applications/key digests; ClickHouse for events/aggregations. Docker Compose for local dependencies and RSpec remain proposed; GitHub Actions is confirmed for CI (D-007). No queues or cross-store transactions. Keep analytics SQL/service shared between API and dashboard. PostgreSQL failure must fail authentication safely; do not mistake process liveness for database readiness.
+Proposed architecture: synchronous Rails API/dashboard → PostgreSQL for applications/key digests; ClickHouse for events/aggregations. Docker Compose is confirmed for local operation (D-004) and GitHub Actions for CI (D-007); RSpec remains proposed. No queues or cross-store transactions. Keep analytics SQL/service shared between API and dashboard. PostgreSQL failure must fail authentication safely; do not mistake process liveness for database readiness.
 
 Proposed event schema: MergeTree, monthly occurred_at partitions; UUID application_id/event_id, String name/user_id/properties, DateTime64 UTC timestamps, LowCardinality(String) platform/country. DateTime64 precision is not specified. Candidate ORDER BY (application_id, name, occurred_at, event_id) must be compared against application+date queries without name filters as well as name-filtered queries before final selection. No materialized view needed to resolve this trade-off.
 
@@ -112,7 +112,7 @@ Approval source: owner's conversation reply dated 2026-11-24, recorded in D-004�
 
 | ID | Status | Value / remaining choice | Confirmation / return trigger |
 |---|---|---|---|
-| A-01 | partially approved | GitHub Actions accepted. Rails monolith, PostgreSQL + ClickHouse responsibilities, Compose and RSpec still proposed | Owner confirms remaining stack/boundaries in #2; compatible versions delegated to #3 |
+| A-01 | partially approved | GitHub Actions and Docker Compose accepted. Rails monolith, PostgreSQL + ClickHouse responsibilities and RSpec still proposed | Owner confirms remaining stack/boundaries in #2; compatible versions delegated to #3 |
 | A-02 | unapproved | name ≤128 UTF-8 bytes, user_id ≤256 bytes, properties serialized JSON ≤16 KiB/event, body ≤2 MiB | Owner confirms before ingestion; limits apply together, so 1000 individually valid large events need not fit |
 | A-03 | unapproved | SHA-256 digest of at least 256 random key bits, indexed digest lookup | Owner security confirmation before #4 |
 | A-04 | partially delegated | DateTime64(3, UTC) and monthly partitions still proposed; final sorting key is delegated, not selected | Owner confirms precision/partition policy in #2; #5 selects and justifies sorting key/library/transport |
@@ -170,7 +170,7 @@ The smallest useful vertical slice is one application, HTTP ingestion and correc
 | Integrations and failure handling | decided | No write retry; finite deadlines; analytics invalid filters 422/unavailable dependency 503; actual client/timeouts delegated | D-006/D-008; #5/#7 record and justify library/deadline values |
 | Authentication and authorization | deferred | Bearer/application isolation required; digest mechanism and local dashboard trust need confirmation | Owner/readiness A-03 before auth work; does not block definition |
 | Secrets, privacy, and sensitive data | decided | Synthetic only, digest-only keys, no key logging/browser exposure | Source #1 §§1,3,5,7; Security; D-002 |
-| Language, framework, and dependencies | deferred | Proposed Rails/RSpec/Compose stack; versions and client unselected | Owner/readiness A-01, then scaffold pins; does not block definition |
+| Language, framework, and dependencies | deferred | Rails/RSpec remain proposed; Compose confirmed; versions and client delegated | Owner/readiness A-01, then scaffold pins; does not block definition |
 | Environments and deployment | decided | Local demo only; public hosting excluded | Source #1 §5 and Out of scope; deployment mechanics in readiness |
 | Configuration | deferred | Environment config/example required; timeout policy accepted and values delegated; variable names follow scaffold/client | D-006/D-008; #3/#5 document actual config; does not block definition |
 | Logging, monitoring, and errors | deferred | Secret-free failures/liveness vs readiness required; 400/422 contracts accepted; endpoint/log details pending scaffold | D-005/D-006; #3/#5 record details; does not block definition |
