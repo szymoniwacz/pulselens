@@ -2,7 +2,7 @@
 
 ## Current authorized work
 
-Define the project from [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), record assumptions and decisions, and create dependency-ordered issues. Stop before product implementation and before declaring readiness.
+Define the project from [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), record approved decisions and dependency-ordered issues, and complete readiness-safe bootstrap from [issue #2](https://github.com/szymoniwacz/pulselens/issues/2) in PR #12. Record branch-level readiness and validation for final owner review; stop before product implementation and merge.
 
 ## MVP delivery scope after readiness and execution authorization
 

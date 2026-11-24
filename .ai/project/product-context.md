@@ -27,4 +27,4 @@ A-01–A-09 are approved (D-004–D-014): Rails/PG/ClickHouse/RSpec, input byte 
 
 ## Current authorization
 
-Definition and backlog preparation only. No implementation or execution automation started. Complete readiness-safe bootstrap before the first product goal. [Roadmap](roadmap.md).
+Definition and readiness-safe bootstrap are prepared in PR #12 for owner review. No product implementation or execution automation started. Branch-level readiness passes under the greenfield exception; owner review/merge, target-branch dependency preflight and separate execution authorization precede scaffold #3. [Roadmap](roadmap.md).
