@@ -2,10 +2,10 @@
 
 | Term | Meaning |
 |---|---|
-| Application | Demo event producer and isolation boundary; proposed PostgreSQL record with UUID and API key digest. |
+| Application | Demo event producer and isolation boundary; PostgreSQL record with UUID and API key digest. |
 | API key | Bearer credential shown once at creation; only its digest is stored. |
 | Event | Synthetic activity record; client event_id is an identifier, not a deduplication guarantee. |
-| occurred_at | Client timestamp with timezone, normalized to UTC; drives filters, partitioning proposal and daily grouping. |
+| occurred_at | Client timestamp with timezone, normalized to UTC; drives filters, monthly partitioning and daily grouping. |
 | received_at | UTC timestamp assigned by the server. |
 | Unique user | Distinct synthetic user_id within the authenticated application and query range. |
 | Daily active users | Exact distinct users within a UTC day; these counts must not be summed to produce range uniques. |
