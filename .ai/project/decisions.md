@@ -34,4 +34,8 @@ Source: explicit owner acceptance of A-01–A-04 in the project-definition conve
 
 ## Remaining decisions and readiness
 
-No unapproved A-01–A-09 choice remains. Versions, ClickHouse library, timeout values and final sorting key remain delegated to #3/#5/#7 with rationale required. MergeTree is the source schema proposal for #5 to evaluate, not a newly claimed owner decision. The [requirements](../docs/project-requirements.md#readiness-assessment--2026-11-24) record remaining readiness blockers. Definition approval does not complete #2, authorize implementation or permit agent merge.
+No unapproved A-01–A-09 choice remains. Versions, ClickHouse library, timeout values and final sorting key remain delegated to #3/#5/#7 with rationale required. MergeTree is the source schema proposal for #5 to evaluate, not a newly claimed owner decision. The [requirements](../docs/project-requirements.md#readiness-assessment--2026-11-24) record the readiness-safe bootstrap result and remaining owner review/integration boundary. Definition approval does not complete #2, authorize implementation or permit agent merge.
+
+## Readiness-safe bootstrap handoff — 2026-11-24
+
+The owner explicitly authorized completion of #2 inside PR #12: product README, PulseLens role in AGENTS and readiness validation, stopping before product implementation or merge. No new product or architecture choice is introduced. Branch-level readiness is recorded under the greenfield exception; real application commands and initial service-backed product CI remain owned by #3. Human review/merge and target-branch dependency verification are still pending. Full validation evidence and diff-risk belong to PR #12.

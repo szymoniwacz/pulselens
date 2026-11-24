@@ -1,10 +1,10 @@
 # Roadmap
 
-Source: [definition issue #1](https://github.com/szymoniwacz/pulselens/issues/1). Requirements: [definition-4](../docs/project-requirements.md). Issues below are a prepared backlog, not execution authorization. No product work has started.
+Source: [definition issue #1](https://github.com/szymoniwacz/pulselens/issues/1). Requirements: [definition-5](../docs/project-requirements.md). Issues below are a prepared backlog, not execution authorization. No product work has started.
 
 ## Current — definition and readiness
 
-Project definition coverage and A-01–A-09 owner approvals are complete (D-004–D-014). Versions/client/timeouts/sorting remain delegated to #3/#5/#7. Product start is still BLOCKED: #2 must finish product README/AGENTS customization and pass readiness; PR #12 remains for owner review/merge. No implementation or merge is authorized by this documentation request. See the requirements readiness assessment for evidence.
+Definition, A-01–A-09 approvals and readiness-safe bootstrap for #2 are prepared in PR #12. Product README/AGENTS customization is complete; readiness passes on this branch under the greenfield command-deferral exception. Owner review/merge and verification of #2 on the actual target branch remain prerequisites for #3. Versions/client/timeouts/sorting stay delegated to #3/#5/#7. No product implementation or merge is authorized by this handoff.
 
 | Order | Goal | Issue | Blocked by | Requirements |
 |---|---|---|---|---|
@@ -39,4 +39,4 @@ Dependencies are prerequisites, not merely a display order. Verify actual implem
 
 ## Deferred
 
-Out-of-scope ideas are not delivery commitments. Revisit only with a new approved scope. See [scope](scope.md). Complete template customization and the project readiness gate before starting product delivery.
+Out-of-scope ideas are not delivery commitments. Revisit only with a new approved scope. See [scope](scope.md). The project readiness gate is recorded for the PR branch. Complete owner review/integration and rerun dependency preflight before any separately authorized product delivery.
