@@ -1,12 +1,12 @@
 # Project Requirements
 
-Revision: definition-3, 2026-11-24. Source: [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), no comments at initial definition time. Owner confirmations: conversation dated 2026-11-24, recorded as D-004–D-010 in [decisions](../project/decisions.md). Backlog: [roadmap](../project/roadmap.md).
+Revision: definition-4, 2026-11-24. Source: [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), no comments at initial definition time. Owner confirmations: conversation dated 2026-11-24, recorded as D-004–D-014 in [decisions](../project/decisions.md). Backlog: [roadmap](../project/roadmap.md).
 
 ## Project summary
 
 PulseLens is an event analytics application for collecting and exploring application events. The current version supports local operation with synthetic data.
 
-The source establishes product intent and requested behavior; it explicitly labels technical design as a proposal. Below, functional requirements preserve the requested MVP contract. Proposed implementation details and additional defaults are not approved architecture. Confirm them during readiness before product implementation.
+The source establishes product intent and requested behavior; it explicitly labels technical design as a proposal. Below, functional requirements preserve the requested MVP contract. The owner has now approved A-01–A-09 through D-004–D-014. Versions, ClickHouse library, timeout values and sorting-key selection are delegated to the relevant tasks; approval does not complete repository readiness or authorize implementation.
 
 ## Users
 
@@ -37,7 +37,7 @@ See [scope](../project/scope.md): no accounts/roles, public deployment, queues/w
 
 ## Functional requirements
 
-All rows are must-have MVP outcomes from issue #1 plus explicit owner clarifications D-004–D-010. Technical representations remain proposals where marked.
+All rows are must-have MVP outcomes from issue #1 plus explicit owner clarifications D-004–D-014. Approved technical policies are recorded in the approval register; delegated implementation details remain unselected.
 
 | ID | Requirement | Verification |
 |---|---|---|
@@ -51,7 +51,7 @@ All rows are must-have MVP outcomes from issue #1 plus explicit owner clarificat
 | FR-008 | Local single-page dashboard: server-side application selection, dates and dimension filters, counters, daily chart, top table, empty/error states; same analytics service; no keys sent to browser | System/request checks; API/dashboard parity; rendered output inspection |
 | FR-009 | Generator accepts event count, date range and seed; at least two applications, returning users, multiple names/platforms/countries, reproducible nonuniform activity; bounded-memory batches; supports 1 million events; no implicit deletion | Fixed-seed equality, count/distribution checks, multi-batch test and full demo run |
 | FR-010 | Environment config and secret-free example; explicit connection/query timeouts; versioned schema; documented rebuild; separate liveness and dependency readiness; useful secret-free errors | Fresh setup, unavailable dependency checks and rebuild documentation |
-| FR-011 | Tests ship with features; RSpec and real ClickHouse integration proposed; GitHub Actions CI runs required services and meaningful checks without latency gates | Feature evidence plus cross-system coverage matrix and green CI |
+| FR-011 | Tests ship with features; RSpec and real ClickHouse integration required; GitHub Actions CI runs required services and meaningful checks without latency gates | Feature evidence plus cross-system coverage matrix and green CI |
 | FR-012 | README covers purpose, architecture, clean setup, key creation, curl, generator, tests, store rationale, schema/query decisions and limitations | Clean-checkout walkthrough |
 | FR-013 | Benchmark uses 1 million events, records application count/date range/seed, versions/environment, exact queries/procedure; first vs subsequent executions, time and rows/bytes read where available | Recorded results and independent repeat run; no unsupported comparison |
 
@@ -59,14 +59,14 @@ All rows are must-have MVP outcomes from issue #1 plus explicit owner clarificat
 
 | Input | Source | Format and constraints |
 |---|---|---|
-| Application name | Local operator command | Proposed PostgreSQL Application(id UUID, name, api_key_digest, created_at, updated_at) |
+| Application name | Local operator command | PostgreSQL Application(id UUID, name, api_key_digest, created_at, updated_at) |
 | Batch | HTTP client | JSON object with events array; synthetic identifiers only |
 | event_id, name, user_id | Client | UUID, required string, required synthetic string |
 | occurred_at | Client | Timestamp with timezone; normalized UTC |
 | application_id, received_at | Server | Authenticated application UUID, assigned UTC time |
-| platform | Client | web/ios/android/unknown proposal; absent defaults unknown |
+| platform | Client | web/ios/android/unknown; absent defaults unknown |
 | country | Client | Two-letter code or unknown; absent defaults unknown; uppercase ISO country-code validation accepted (A-08) |
-| properties | Client | JSON object; absent defaults {}; proposed storage as String |
+| properties | Client | JSON object; absent defaults {}; storage as String |
 | Analytics filters | API/dashboard | from, to; optional name/platform/country |
 | Generator parameters | Local operator | Count, explicit date range, random seed |
 
@@ -82,9 +82,9 @@ All rows are must-have MVP outcomes from issue #1 plus explicit owner clarificat
 
 ## Integrations and technical preferences
 
-Proposed architecture: synchronous Rails API/dashboard → PostgreSQL for applications/key digests; ClickHouse for events/aggregations. Docker Compose is confirmed for local operation (D-004) and GitHub Actions for CI (D-007); RSpec remains proposed. No queues or cross-store transactions. Keep analytics SQL/service shared between API and dashboard. PostgreSQL failure must fail authentication safely; do not mistake process liveness for database readiness.
+Approved architecture: synchronous Rails API/dashboard → PostgreSQL for applications/key digests; ClickHouse for events/aggregations. Docker Compose is confirmed for local operation (D-004) and GitHub Actions for CI (D-007); RSpec is confirmed (D-011). No queues or cross-store transactions. Keep analytics SQL/service shared between API and dashboard. PostgreSQL failure must fail authentication safely; do not mistake process liveness for database readiness.
 
-Proposed event schema: MergeTree, monthly occurred_at partitions; UUID application_id/event_id, String name/user_id/properties, DateTime64 UTC timestamps, LowCardinality(String) platform/country. DateTime64 precision is not specified. Candidate ORDER BY (application_id, name, occurred_at, event_id) must be compared against application+date queries without name filters as well as name-filtered queries before final selection. No materialized view needed to resolve this trade-off.
+Approved event representation and partition policy: monthly occurred_at partitions (D-014); MergeTree remains the candidate engine to evaluate in schema task #5; UUID application_id/event_id, String name/user_id/properties, DateTime64(3, UTC) timestamps, LowCardinality(String) platform/country. Millisecond precision and UTC are confirmed (D-014). Candidate ORDER BY (application_id, name, occurred_at, event_id) must be compared against application+date queries without name filters as well as name-filtered queries before final selection. No materialized view needed to resolve this trade-off.
 
 ClickHouse inserts have no automatic retries, including client-level retries. A timeout/lost response can mean an unknown write outcome. Pre-validation does not promise transactional all-or-nothing storage under server failures. event_id does not deduplicate repeat submissions; counters may increase.
 
@@ -100,7 +100,7 @@ ClickHouse inserts have no automatic retries, including client-level retries. A 
 
 ## Active stack profile
 
-None selected yet. Candidate: `.ai/stack-profiles/ruby-rails.md`; activate after owner confirmation in readiness work. Its example commands are placeholders. Current real checks cover the workflow adapter only: `bash tests/test-adapter.sh` and `bash scripts/check-workflow-leak.sh`. Real application commands and product CI are deferred to the scaffold-producing goal under the greenfield bootstrap exception.
+Selected active profile: `.ai/stack-profiles/ruby-rails.md`, following approval of Rails and RSpec (D-011). Its example commands are placeholders. Current real checks cover the workflow adapter only: `bash tests/test-adapter.sh` and `bash scripts/check-workflow-leak.sh`. Real application commands and product CI are deferred to the scaffold-producing goal under the greenfield bootstrap exception.
 
 ## Security and privacy requirements
 
@@ -108,14 +108,14 @@ Only synthetic user identifiers and properties. Store digests only; never log ke
 
 ## Proposal approval register
 
-Approval source: owner's conversation reply dated 2026-11-24, recorded in D-004–D-010. Accepted policy is distinct from implemented behavior. No product readiness or execution authorization is implied.
+Approval source: owner's conversation reply dated 2026-11-24, recorded in D-004–D-014. Accepted policy is distinct from implemented behavior. No product readiness or execution authorization is implied.
 
 | ID | Status | Value / remaining choice | Confirmation / return trigger |
 |---|---|---|---|
-| A-01 | partially approved | GitHub Actions and Docker Compose accepted. Rails monolith, PostgreSQL + ClickHouse responsibilities and RSpec still proposed | Owner confirms remaining stack/boundaries in #2; compatible versions delegated to #3 |
-| A-02 | unapproved | name ≤128 UTF-8 bytes, user_id ≤256 bytes, properties serialized JSON ≤16 KiB/event, body ≤2 MiB | Owner confirms before ingestion; limits apply together, so 1000 individually valid large events need not fit |
-| A-03 | unapproved | SHA-256 digest of at least 256 random key bits, indexed digest lookup | Owner security confirmation before #4 |
-| A-04 | partially delegated | DateTime64(3, UTC) and monthly partitions still proposed; final sorting key is delegated, not selected | Owner confirms precision/partition policy in #2; #5 selects and justifies sorting key/library/transport |
+| A-01 | approved | Rails monolith for API/server-rendered dashboard; PostgreSQL applications/configuration/authentication; ClickHouse events/aggregations; RSpec; Compose/GitHub Actions already accepted | D-011; #3 pins and justifies compatible versions |
+| A-02 | approved | name ≤128 UTF-8 bytes, user_id ≤256 bytes, properties serialized JSON ≤16 KiB/event, body ≤2 MiB | D-012; #6 enforces/tests combined limits; 1000 individually valid large events need not fit |
+| A-03 | approved | SHA-256 digest of at least 256 random key bits, indexed digest lookup | D-013; #4 implements approved design; human security review before merge |
+| A-04 | approved; sorting delegated | DateTime64(3, UTC); monthly partitions by occurred_at; final sorting key delegated, not selected | D-014/D-008; #5 chooses and justifies final sorting key/library/transport |
 | A-05 | approved | Top ties count DESC/name ASC; zero-based error indexes; daily UTC dates intersecting [from,to), excluding an exact-midnight to day | D-009; #6/#7 document and test the confirmed contract |
 | A-06 | approved | Persistent local database volumes preserve data across ordinary restarts. Generator recovery, explicit-command-only deletion and no automatic TTL remain confirmed; production backup service outside MVP | D-007/D-010; #3/#5 document volume lifecycle; no blanket reset authorization |
 | A-07 | approved | Local Linux/macOS with Compose; English UI/docs; labelled keyboard-usable controls and textual chart equivalents | D-004; actual runtime versions and tested compatibility recorded in #3 |
@@ -124,12 +124,12 @@ Approval source: owner's conversation reply dated 2026-11-24, recorded in D-004�
 
 ## Open questions and return triggers
 
-No missing information blocks this documentation update. Unapproved policy choices below remain prerequisites for dependent product work; they do not prevent definition coverage.
+No missing information blocks this documentation update. All A-01–A-09 policy choices are approved. The remaining items are bounded delegated implementation details or repository preparation, not new owner-decision blockers.
 
-- Owner in #2: remaining A-01 stack/boundaries, A-02 input limits, A-03 key design, A-04 timestamp precision/partitions. A-05–A-09 no longer require reconfirmation.
+- No unapproved A-01–A-09 choice remains. Complete README/AGENTS product customization and the readiness gate in #2; do not request these approvals again.
 - Confirmed ownership baseline: retain the existing LICENSE attribution ©2026 Szymon Iwacz; review and merge remain with the repository owner. MIT, GitHub Actions, no automatic MVP releases, git revert rollback and generator recovery with explicit deletion are confirmed; no additional maintenance commitment is invented.
 - Delegated by owner, not a new approval question: #3 selects and justifies compatible versions; #5 selects and justifies ClickHouse library/transport, final sorting key and client timeouts; #7 records any analytics-specific timeout choice. Select within approved component/security/data boundaries and escalate only material scope changes.
-- Scaffold: record real commands and local binding; no runtime compatibility claims until tested. Customization and profile selection remain in #2; no scaffold is created during this documentation task.
+- Scaffold: record real commands and local binding; no runtime compatibility claims until tested. Profile is selected; remaining product customization belongs to #2; no scaffold is created during this documentation task.
 - Generator #9: define whether count is total or per application (recommended total), deterministic identity/time handling and repeated-run behavior before coding. received_at can vary; reproducibility concerns logical generated events.
 - Final benchmark #11: report query-cache configuration and warm-up procedure; first execution is not necessarily a cold OS/database cache. Explain that generator-direct insert does not benchmark HTTP ingestion throughput.
 
@@ -143,7 +143,7 @@ No missing information blocks this documentation update. Unapproved policy choic
 | Poor sorting for date-only queries | High scan work | Compare query shapes; measure rows/bytes, record trade-off |
 | Large payload/generator | Resource exhaustion | Explicit byte/count bounds and streaming batches |
 | Unauthenticated demo published | Data/configuration exposure | Local-only operation; public deployment excluded |
-| Technical proposal mistaken for approval | Unreviewed architecture/security choices | Readiness confirmation and explicit decision statuses |
+| Approved decision drift | Approved choices lost during future implementation | Decision log, approval register and feature review |
 
 ## First useful version and later versions
 
@@ -162,19 +162,19 @@ The smallest useful vertical slice is one application, HTTP ingestion and correc
 | First useful version | decided | Small end-to-end MVP; no platform expansion | Source #1 MVP requirements; First useful version |
 | Non-goals | decided | Explicit exclusions preserved | Source #1 Out of scope; scope.md |
 | Interfaces | decided | HTTP ingestion/analytics, local dashboard and operator commands | Source #1 §§1,3–6; FR-001/003/006/008/009 |
-| Inputs and outputs | decided | Synthetic events, filters, counters/series and key; malformed JSON 400, server-reserved fields 422 | Source #1; D-005; data/output tables; A-02/04 encoding details pending; A-05 confirmed by D-009 |
-| Architecture shape | deferred | Source technical proposal needs confirmation; no architecture selected by this definition | Owner/readiness: A-01 and boundaries before scaffold; does not block definition |
-| Boundaries | deferred | Proposed Rails/PostgreSQL/ClickHouse responsibilities | Owner/readiness before product; does not block definition |
-| Storage and data ownership | deferred | Proposed PG application/key digests, CH events, local synthetic operator data | Owner/readiness A-01/03/04; persistent volumes confirmed D-010; does not block definition |
+| Inputs and outputs | decided | Synthetic event/API contracts, byte limits and time precision approved; JSON 400, reserved fields 422, deterministic daily/top results | D-005/D-009/D-012/D-014; FR-003–007 |
+| Architecture shape | decided | Synchronous Rails monolith with server-rendered dashboard; PostgreSQL application metadata/auth; ClickHouse event analytics | D-011; #3 scaffold; no queues or separate frontend |
+| Boundaries | decided | Rails validates/authenticates/orchestrates/presents; PG stores applications/key digests; CH stores events/aggregates; local dashboard resolves application server-side | D-011/D-013; Security and privacy requirements |
+| Storage and data ownership | decided | Local synthetic operator data; PG applications/key digests, CH events; persistent local volumes; millisecond UTC timestamps/monthly event partitions | D-010/D-011/D-013/D-014; generator recovery |
 | Retention and migrations | decided | Versioned setup required; persistent volumes across ordinary restarts; generator recovery, explicit-command-only deletion and no automatic TTL confirmed | Source #1 §7; D-007/D-010; #3/#5 implement and document lifecycle |
 | Integrations and failure handling | decided | No write retry; finite deadlines; analytics invalid filters 422/unavailable dependency 503; actual client/timeouts delegated | D-006/D-008; #5/#7 record and justify library/deadline values |
-| Authentication and authorization | deferred | Bearer/application isolation required; digest mechanism and local dashboard trust need confirmation | Owner/readiness A-03 before auth work; does not block definition |
+| Authentication and authorization | decided | Bearer/application isolation; ≥256 random key bits, stored SHA-256 digest with indexed lookup; trusted local dashboard, no browser key | D-013; FR-001/006/008; #4 human security review |
 | Secrets, privacy, and sensitive data | decided | Synthetic only, digest-only keys, no key logging/browser exposure | Source #1 §§1,3,5,7; Security; D-002 |
-| Language, framework, and dependencies | deferred | Rails/RSpec remain proposed; Compose confirmed; versions and client delegated | Owner/readiness A-01, then scaffold pins; does not block definition |
+| Language, framework, and dependencies | decided | Ruby/Rails, RSpec, Compose, PostgreSQL and ClickHouse; versions/client selected and justified in delegated tasks | D-011/D-008; #3 versions, #5 ClickHouse library; active ruby-rails profile |
 | Environments and deployment | decided | Local demo only; public hosting excluded | Source #1 §5 and Out of scope; deployment mechanics in readiness |
 | Configuration | deferred | Environment config/example required; timeout policy accepted and values delegated; variable names follow scaffold/client | D-006/D-008; #3/#5 document actual config; does not block definition |
 | Logging, monitoring, and errors | deferred | Secret-free failures/liveness vs readiness required; 400/422 contracts accepted; endpoint/log details pending scaffold | D-005/D-006; #3/#5 record details; does not block definition |
-| Tests, lint, typecheck, performance | deferred | Feature tests, real CH and reproducible benchmark required; tools/commands pending scaffold | Readiness A-01; first scaffold goal records real commands; does not block definition |
+| Tests, lint, typecheck, performance | deferred | RSpec feature tests, real CH integration, CI and reproducible benchmark approved; actual commands/lint configuration need scaffold | D-011; greenfield deferral to #3; does not block definition or readiness-safe #2 |
 | Scale, reliability, and cost | decided | 1–1000 batch, 90-day query range, 1M demo; no latency gate/exactly-once | Source #1 §§3,4,6,8,9; numeric budgets unspecified, measure locally |
 | Supported platforms and compatibility | decided | Local Linux/macOS with Compose; compatible runtime versions delegated and must be tested | D-004/D-008; #3 pins versions and records tested matrix |
 | Accessibility and localization | decided | English UI/docs; labelled keyboard-usable controls, textual chart equivalents | D-004; #8 dashboard verification |
@@ -184,19 +184,29 @@ The smallest useful vertical slice is one application, HTTP ingestion and correc
 
 ## Project readiness
 
-Definition only; readiness has not been run. Use `.ai/onboarding/bootstrap-checklist.md` in the readiness issue. For this greenfield repository, real commands may be explicitly deferred to the first scaffold goal; do not create throwaway packaging to satisfy the gate.
+Definition and readiness assessment only; the full bootstrap readiness gate has not passed. Use `.ai/onboarding/bootstrap-checklist.md` in the readiness issue. For this greenfield repository, real commands may be explicitly deferred to the first scaffold goal; do not create throwaway packaging to satisfy the gate.
 
 | Check | Result | Notes |
 |---|---|---|
 | Definition coverage complete | complete | All 26 areas classified; proposals separate from confirmed intent |
-| No `blocking-question` remains | yes for definition | No blocking-question status; deferred technical decisions must be revisited before product work |
+| No `blocking-question` remains | yes | A-01–A-09 approved; no owner-decision blocker; delegated details belong to future scoped tasks |
 | All `deferred` items have reason and return trigger | yes | Decision table and Open questions |
-| Template customization complete | not assessed | Readiness issue owns this |
-| Stack profile selected or marked N/A | pending | Rails candidate only |
+| Template customization complete | no | README is still adapter-focused; AGENTS lacks PulseLens product role; #2 owns completion |
+| Stack profile selected or marked N/A | yes | ruby-rails profile selected after D-011; reusable profile is unchanged |
 | Real project commands recorded | deferred | No scaffold; first product goal owns actual commands |
 | Root README describes the product | no | Still adapter README; readiness issue |
 | `AGENTS.md` describes repository role | pending | Preserve workflow entrypoint, add product role during readiness |
-| Bootstrap markers removed | not assessed | Whole-repository bootstrap review pending |
+| Bootstrap markers removed | yes in tracked project files | git grep found no REPLACE DURING BOOTSTRAP markers; reusable runtime examples excluded |
 | License and ownership decided | confirmed | MIT; existing LICENSE attribution retained; owner reviews and merges (D-007) |
 | CI, branch rules, and approvals decided | policy confirmed | D-007; implementation/customization and gate evidence still pending |
-| Project ready for first product task | not declared | No product implementation authorized or started |
+| Project ready for first product task | BLOCKED | #2 customization/readiness incomplete; definition PR #12 unmerged; no implementation authorization |
+
+## Readiness assessment — 2026-11-24
+
+Assessment only; no product/bootstrap implementation and no merge performed. Examined PR #12 branch and current README/AGENTS plus open prerequisite #2 for scaffold #3. GitHub main was verified at 3d429c5097b77606b95a6fd3421222e9010cdf23; the approved definition is not yet integrated there.
+
+- **Owner decisions: complete.** All A-01–A-09 are approved; versions/client/timeouts/sorting remain delegated, not blocking approval questions. Rails profile is selected in this document.
+- **Product start: BLOCKED.** README still describes the workflow adapter; AGENTS preserves the correct workflow entrypoint but lacks the product role. Finish these existing #2 acceptance criteria and record a passed readiness gate before scaffold #3.
+- **Integration prerequisite:** PR #12 is still open/unmerged; owner review/merge must place the definition on the target branch. This assessment does not treat a clean PR or approved policies as merged evidence or completed #2.
+- **Not blockers by themselves:** absent product commands, scaffold and product CI are owned by #3 under the greenfield exception. Delegated versions/library/timeouts/sort choice require documented rationale in their tasks, not an additional owner clarification now.
+- **Authorization:** the current request permits documentation/PR changes and this assessment only; implementation remains explicitly prohibited. After prerequisite completion, execution requires its own authorization.

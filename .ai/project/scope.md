@@ -24,4 +24,4 @@ Local demo data recovery via the generator and deletion only by explicit command
 
 ## Scope changes
 
-New material product, security or architecture choices require owner confirmation. Technical details presented as proposals in issue #1 remain proposals until confirmed; assumptions do not become requirements through issue creation.
+New material product, security or architecture choices require owner confirmation. A-01–A-09 are confirmed in D-004–D-014. Versions, ClickHouse library, timeout values and sorting-key selection are delegated to the relevant tasks; other source proposals must be evaluated there, not silently promoted to owner-approved choices.

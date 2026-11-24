@@ -1,10 +1,10 @@
 # Roadmap
 
-Source: [definition issue #1](https://github.com/szymoniwacz/pulselens/issues/1). Requirements: [definition-3](../docs/project-requirements.md). Issues below are a prepared backlog, not execution authorization. No product work has started.
+Source: [definition issue #1](https://github.com/szymoniwacz/pulselens/issues/1). Requirements: [definition-4](../docs/project-requirements.md). Issues below are a prepared backlog, not execution authorization. No product work has started.
 
 ## Current — definition and readiness
 
-Project definition coverage is complete; project readiness is not declared. Owner confirmations D-004–D-010 accept A-05–A-09 with HTTP 400/422 clarifications, MIT/CI/review/release/rollback/recovery policies, and delegate versions/client/timeouts/sorting to #3/#5/#7. Remaining A-01–A-04 choices are listed in the requirements approval register; no implementation is started. Before product work, review/persist the local definition, confirm proposed technical and operational choices, and complete readiness-safe bootstrap.
+Project definition coverage and A-01–A-09 owner approvals are complete (D-004–D-014). Versions/client/timeouts/sorting remain delegated to #3/#5/#7. Product start is still BLOCKED: #2 must finish product README/AGENTS customization and pass readiness; PR #12 remains for owner review/merge. No implementation or merge is authorized by this documentation request. See the requirements readiness assessment for evidence.
 
 | Order | Goal | Issue | Blocked by | Requirements |
 |---|---|---|---|---|

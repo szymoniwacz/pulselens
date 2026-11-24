@@ -23,6 +23,15 @@ Source: explicit owner reply in the project-definition conversation after PR #12
 
 Source for D-009/D-010: explicit owner acceptance of A-05 and A-06 in the project-definition conversation, 2026-11-24. Documentation/PR update only; no implementation or merge authorization.
 
-## Remaining proposals
+## Final definition approvals — 2026-11-24
 
-A-01 is partially approved (GitHub Actions and Docker Compose); Rails monolith, PostgreSQL/ClickHouse responsibilities and RSpec remain proposed. A-02/A-03 are unapproved. A-04 retains proposed precision/partitions while sorting selection is delegated. See the [proposal approval register](../docs/project-requirements.md#proposal-approval-register) for values and return triggers. A-05–A-09 are approved and must not be requested again as if unapproved. No readiness declaration or implementation follows from these confirmations.
+Source: explicit owner acceptance of A-01–A-04 in the project-definition conversation. Update PR #12 and assess remaining start blockers only; do not implement or merge.
+
+- D-011 (A-01 approved): Rails monolith for API/server-rendered dashboard; PostgreSQL for application configuration/authentication; ClickHouse for events/aggregations; RSpec. Compose and GitHub Actions remain approved. Select the ruby-rails guidance profile in requirements.
+- D-012 (A-02 approved): name ≤128 UTF-8 bytes, user_id ≤256 bytes, serialized properties JSON ≤16 KiB/event and request body ≤2 MiB; count and byte limits apply together.
+- D-013 (A-03 approved): cryptographic key with at least 256 random bits, digest-only SHA-256 storage and indexed digest lookup.
+- D-014 (A-04 approved): DateTime64(3, UTC), monthly partitions by occurred_at. Final sorting key stays delegated to #5 under D-008.
+
+## Remaining decisions and readiness
+
+No unapproved A-01–A-09 choice remains. Versions, ClickHouse library, timeout values and final sorting key remain delegated to #3/#5/#7 with rationale required. MergeTree is the source schema proposal for #5 to evaluate, not a newly claimed owner decision. The [requirements](../docs/project-requirements.md#readiness-assessment--2026-11-24) record remaining readiness blockers. Definition approval does not complete #2, authorize implementation or permit agent merge.
