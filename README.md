@@ -1,83 +1,80 @@
-# AI Project Template Adapter
+# PulseLens
 
-**One reusable AI development workflow across projects, Codex, Cursor, and automation — without committing private instructions to public Git history.**
+PulseLens is a small Ruby on Rails event analytics demo for learning ClickHouse and discussing backend design during recruitment. It is intended for a developer running a local demo and a reviewer exploring the architecture, tests and measurements.
 
-I built this adapter to keep a single workflow up to date while preserving each project's requirements and decisions. The adapter is public; the workflow it loads is private.
+**Status:** project definition and repository bootstrap. The MVP is specified and its product decisions are approved; the Rails application has not been implemented. This repository does not yet offer a running API, dashboard or generator.
 
-## How it works
+## Planned MVP
 
-```mermaid
-flowchart TB
-    A["Private workflow<br/>Git submodule"] --> C["Setup script"]
-    B["Tracked project context<br/>Requirements and decisions"] --> C
-    C --> D["Local .ai/ runtime"]
-    D --> E["Codex / Cursor"]
-    D --> F["Cloud automation"]
-```
+1. Create a demo application and receive an API key, displayed once and stored only as a digest.
+2. Submit synthetic event batches to `POST /api/v1/events`.
+3. Explore application-scoped analytics through `GET /api/v1/analytics` and a simple dashboard.
+4. Generate a reproducible dataset for at least two applications and measure queries over one million events.
 
-Setup refreshes the private submodule, copies its reusable files locally, preserves existing `.ai/project/` configuration and tracked project context, and prepares tool commands and GitHub/GitLab issue templates. Missing project defaults are seeded from the private workflow.
+The analytics include total events, exact unique users, daily activity and top event names, with date and dimension filters. Tests will accompany each feature and include real ClickHouse integration.
 
-## Run the public tests
+## Architecture
 
-Anyone can clone this repository and verify the adapter **without private access**:
+| Component | Responsibility |
+|---|---|
+| Ruby on Rails | Synchronous HTTP API, authentication, validation, shared analytics query logic and server-rendered dashboard |
+| PostgreSQL | Demo application configuration and API key digests |
+| ClickHouse | Event storage and analytical aggregations |
+| Docker Compose | Local dependencies with persistent database volumes |
+| RSpec / GitHub Actions | Feature/integration tests and CI |
+
+PostgreSQL holds application metadata; ClickHouse holds event data and computes aggregates. There are no background workers or cross-database transactions. Versions, the ClickHouse library, timeout values and the final sorting key will be selected and justified in the corresponding implementation tasks.
+
+## Start here
+
+Clone the repository to inspect the definition and run the existing repository checks:
 
 ```bash
+git clone https://github.com/szymoniwacz/pulselens.git
+cd pulselens
+```
+
+Application installation, startup, build, test, lint and typecheck commands do not exist yet. [Scaffold issue #3](https://github.com/szymoniwacz/pulselens/issues/3) will provide the actual commands, compatible versions and local dependency setup. No Rails or Docker commands below are implied to work before that task is delivered.
+
+Application/key creation, HTTP examples, schema setup/rebuild, generator commands and benchmark results will be documented with their implementing features. The [roadmap](.ai/project/roadmap.md) records the prerequisites and sequence.
+
+## Configuration and local data
+
+The MVP targets local Linux/macOS environments using Docker Compose and synthetic data only. Application environment variables, finite connection/query timeouts and a secret-free `.env.example` will be documented in the scaffold/client tasks; no product environment configuration is available yet.
+
+Database volumes will preserve data across ordinary restarts. Deletion requires an explicit command; there is no automatic TTL. Demo data can be recreated with the planned generator. Never commit or log API keys; the dashboard will keep them out of the browser.
+
+## Existing repository checks
+
+These checks validate the inherited workflow adapter, not an implemented Rails product. They run without access to the private workflow repository:
+
+```bash
+bash -n scripts/*.sh tests/test-adapter.sh
 bash tests/test-adapter.sh
 bash scripts/check-workflow-leak.sh
 ```
 
-Tests use a local fake workflow; [Ubuntu CI](.github/workflows/ci.yml) runs the same checks. The leak check detects selected tracked files — **it is not a secrets scanner**.
+The contract tests use a local fixture. The leak check detects selected tracked private-workflow paths; it is not a general secrets scanner. GitHub Actions runs these checks on pushes and pull requests. Product CI with real PostgreSQL/ClickHouse services belongs to issue #3 and subsequent feature tasks.
 
-## Install and use (authorized users)
+## Scope and limitations
 
-Requires read access to the private `szymoniwacz/ai-project-template`.
+- Local demo only: no public hosting, user accounts, roles or dashboard login.
+- No real personal data or integrations with analytics providers.
+- Synchronous ingestion only; no queues, Kafka or separate frontend.
+- No deduplication or exactly-once guarantee. Inserts are not retried automatically; a lost response can leave the write outcome unknown, and repeated submissions can increase counters.
+- No funnels, cohorts, retention or revenue analytics, or materialized views.
+- No performance results exist yet. Benchmarks will record the dataset, environment, exact queries and first/subsequent executions without arbitrary CI latency thresholds or unsupported PostgreSQL comparisons.
 
-1. Select **Use this template** on GitHub, create a project repository, and clone it.
-2. Run setup and verify:
+## Project context and contribution
 
-   ```bash
-   ./scripts/setup-ai-workflow.sh
-   ./scripts/ai-workflow-doctor.sh
-   ./scripts/check-workflow-leak.sh
-   ```
+- [Vision](.ai/project/vision.md), [product context](.ai/project/product-context.md) and [scope](.ai/project/scope.md).
+- [Requirements, approvals and readiness](.ai/docs/project-requirements.md), [decisions](.ai/project/decisions.md) and [glossary](.ai/project/glossary.md).
+- [Roadmap and linked issues](.ai/project/roadmap.md); source [#1](https://github.com/szymoniwacz/pulselens/issues/1), readiness [#2](https://github.com/szymoniwacz/pulselens/issues/2), first product task [#3](https://github.com/szymoniwacz/pulselens/issues/3).
 
-3. Confirm the doctor reports **`Status: ready`**.
-4. Edit the tracked context, roadmap, and decision files in `.ai/project/`. New filenames may need `.gitignore` changes.
-5. Open the repository in Codex or Cursor. Read `.ai/README.md` and use its workflow commands for an authorized task.
+The repository uses a private reusable AI workflow for authorized contributors. [Workflow setup and troubleshooting](docs/setup.md), [architecture](docs/architecture.md) and [automation setup](docs/automation-setup.md) describe that adapter infrastructure. Follow [AGENTS.md](AGENTS.md); after setup, `.ai/README.md` and `.ai/docs/template-flow.md` are the local workflow entry points. Private workflow access is required for assisted development, not for the public repository checks above. The future product must run without that access.
 
-**Update later:**
+Review and merge remain with the repository owner. There are no automatic MVP releases; code rollback uses `git revert`. Product implementation requires a separately authorized task after readiness and integration checks.
 
-```bash
-./scripts/update-ai-workflow.sh
-./scripts/ai-workflow-doctor.sh
-git status --short
-git diff --submodule
-```
+## License and maintainer
 
-Review changes before committing. **Never commit the materialized private workflow.** Setup refreshes generated runtime files and issue templates; review or back up custom files in those destinations before running it. [Detailed setup and troubleshooting](docs/setup.md).
-
-## Review and merge modes
-
-The private workflow supports a **human-review default** and optional self-correcting review and authorized auto-merge:
-
-```mermaid
-flowchart LR
-    A["PR + validated changes"] --> B{"Authorized mode"}
-    B -->|"Default"| C["Human review and merge"]
-    B -->|"Self-correcting"| D["Review / fix / revalidate"]
-    D --> E{"Clean and eligible?"}
-    E -->|"No"| C
-    E -->|"Yes"| F{"Auto-merge authorized?"}
-    F -->|"No"| G["Human merge"]
-    F -->|"Yes + checks pass"| H["Goal Executor squash merge"]
-```
-
-Independent agent review is preferred; self-review is the fallback. Risky changes and unresolved blockers require human involvement. Project orchestration also supports dependency checks, duplicate-run coordination, and evidence-backed backlog audits. **[See commands, orchestration, safeguards, and diagrams](docs/workflow-modes.md).**
-
-## Explore the implementation
-
-**[Technical walkthrough](docs/reviewer-guide.md)** · [Setup script](scripts/setup-ai-workflow.sh) · [Contract tests](tests/test-adapter.sh) · [Architecture](docs/architecture.md) · [Automation setup](docs/automation-setup.md) · [Future ideas](docs/improvements.md) · [Specification](docs/repository-specification.md)
-
-**Scope:** this repository demonstrates the integration architecture, not the private agent implementation or the accuracy of AI code review.
-
-MIT License.
+[MIT](LICENSE). Copyright ©2026 Szymon Iwacz. Maintainer: [szymoniwacz](https://github.com/szymoniwacz).
