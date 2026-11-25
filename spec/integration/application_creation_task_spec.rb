@@ -39,4 +39,14 @@ RSpec.describe "applications:create", :integration do
       expect { task.invoke }.to raise_error(SystemExit)
     end.to output("Use a local development/test environment and set APPLICATION_NAME\n").to_stderr
   end
+
+  it "reports a failed database write without printing a credential or private details" do
+    ENV["APPLICATION_NAME"] = "Unavailable database"
+    allow(Application).to receive(:issue_key!).and_raise(ActiveRecord::ConnectionNotEstablished, "synthetic-private-detail")
+    expect do
+      expect do
+        expect { task.invoke }.to raise_error(SystemExit)
+      end.to output("Application creation failed\n").to_stderr
+    end.to output("").to_stdout
+  end
 end

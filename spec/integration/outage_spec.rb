@@ -15,8 +15,21 @@ RSpec.describe "Real dependency outage", :outage, type: :request do
 
   if ENV["EXPECT_UNAVAILABLE"] == "postgresql"
     it "cannot authenticate when PostgreSQL is stopped" do
-      header = "Bearer #{ApplicationApiKey.generate}"
-      expect { Application.authenticate_bearer(header) }.to raise_error(ActiveRecord::ActiveRecordError)
+      stub_const("OutageAuthenticationProbeController", Class.new(Api::BaseController) do
+        def show
+          render json: { application_id: current_application.id }
+        end
+      end)
+      Rails.application.routes.draw do
+        get "/__outage_auth_probe", to: "outage_authentication_probe#show"
+      end
+      key = ApplicationApiKey.generate
+      get "/__outage_auth_probe", headers: { "Authorization" => "Bearer #{key}" }
+      expect(response).to have_http_status(:service_unavailable)
+      expect(response.parsed_body).to eq("error" => "Service unavailable")
+      expect(response.headers["Cache-Control"]).to include("no-store")
+    ensure
+      Rails.application.reload_routes!
     end
   end
 

@@ -55,18 +55,17 @@ RSpec.describe "Application API authentication", :integration, type: :request do
   it "does not disclose raw credentials or digest through application/SQL logs" do
     output = StringIO.new
     logger = ActiveSupport::Logger.new(output)
-    previous_rails_logger = Rails.logger
-    previous_record_logger = ActiveRecord::Base.logger
-    Rails.logger = logger
-    ActiveRecord::Base.logger = logger
+    loggers = [ Rails.logger, ActionController::Base.logger, ActiveRecord::Base.logger ].compact.uniq
+    loggers.each { |sink| sink.broadcast_to(logger) }
     application, key = Application.issue_key!(name: "Log redaction")
     get "/__auth_probe", headers: { "Authorization" => "Bearer #{key}" }
     expect(response).to have_http_status(:ok)
-    expect(output.string).to include("Application")
+    get "/__auth_probe", params: { api_key: key }
+    expect(response).to have_http_status(:unauthorized)
+    expect(output.string).to include("Processing by AuthenticationProbeController#show", "Application Create", "[FILTERED]")
     expect(output.string).not_to include(key, application.api_key_digest)
   ensure
-    Rails.logger = previous_rails_logger
-    ActiveRecord::Base.logger = previous_record_logger
+    loggers&.each { |sink| sink.stop_broadcasting_to(logger) }
   end
 
   it "enforces unique digests in PostgreSQL" do
