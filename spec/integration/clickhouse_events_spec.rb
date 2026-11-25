@@ -41,10 +41,10 @@ RSpec.describe "ClickHouse event storage", :integration do
     expect(client.query("SELECT event_id FROM events WHERE application_id = {application:UUID}",
                         bindings: { application: SecureRandom.uuid })).to be_empty
 
-    expect(client.insert_events([ event ])).to be(true)
+    expect(client.insert_events([ event, event ])).to be(true)
     count = client.query("SELECT count() AS count FROM events WHERE application_id = {application:UUID}",
                          bindings: { application: application_id }).first.fetch("count")
-    expect(count.to_i).to eq(2)
+    expect(count.to_i).to eq(3)
   end
 
   it "redacts real server errors and rejected credentials" do

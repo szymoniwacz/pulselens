@@ -35,7 +35,7 @@ bin/setup
 bin/dev
 ```
 
-`bin/setup` installs the locked gems into `vendor/bundle`, starts the Compose databases and prepares the development/test PostgreSQL databases and applies the versioned ClickHouse schemas. It does not reset an existing database or delete volumes. If `.env` is absent it creates the example and stops for configuration. `bin/dev` starts Rails on **127.0.0.1:3000**. Database ports are also published on loopback only (PostgreSQL 5432, ClickHouse HTTP 8123); no ClickHouse native port is published. If a port is occupied, stop the conflicting local service or adjust the documented configuration before starting.
+`bin/setup` installs the locked gems into `vendor/bundle`, starts the Compose databases, prepares the development/test PostgreSQL databases and applies the versioned ClickHouse schemas. It does not reset an existing database or delete volumes. If `.env` is absent it creates the example and stops for configuration. `bin/dev` starts Rails on **127.0.0.1:3000**. Database ports are also published on loopback only (PostgreSQL 5432, ClickHouse HTTP 8123); no ClickHouse native port is published. If a port is occupied, stop the conflicting local service or adjust the documented configuration before starting.
 
 ## Liveness and readiness
 
@@ -115,7 +115,14 @@ Do not run this against shared data. The setup command applies versioned ClickHo
 
 Development and test use separate databases, `pulselens_development` and `pulselens_test`. Setup applies `db/clickhouse/001_create_events.sql`, an idempotent versioned statement, without dropping or truncating data. Later schema versions must also be safe to reapply. Run `RAILS_ENV=development bin/rails clickhouse:setup` (or test) in a shell with the documented environment exported to apply explicitly. A single local operator runs setup; it is not a concurrent migration service. Existing volumes keep their data; an explicitly authorized full local rebuild uses the destructive reset above.
 
-The events table uses MergeTree, monthly UTC partitions, UUID application/event IDs, DateTime64(3, 'UTC') timestamps, String names/users/properties and LowCardinality(String) platform/country. JSON properties are serialized once as JSON text in a String column. The selected initial sorting key is `(application_id, occurred_at, name, event_id)`: application and bounded date filters are mandatory, whereas name is optional. The comparison test exercises both this and the name-first candidate with equal synthetic distributions and prints EXPLAIN index/granule evidence. Actual evidence is required in CI before review-ready; the test does not assert arbitrary latency or superiority.
+The events table uses MergeTree, monthly UTC partitions, UUID application/event IDs, DateTime64(3, 'UTC') timestamps, String names/users/properties and LowCardinality(String) platform/country. JSON properties are serialized once as JSON text in a String column. The selected sorting key is `(application_id, occurred_at, name, event_id)`: application and bounded date filters are mandatory, whereas name is optional. The [sorting-key integration spec](spec/integration/clickhouse_sort_key_spec.rb) compares both candidates with 131,072 synthetic rows per table, two applications, eight event names and 28 days. In the [CI run for commit 276d80e](https://github.com/szymoniwacz/pulselens/actions/runs/45596923233), ClickHouse 26.8.46.6 reported these primary-key granule selections:
+
+| Query shape | Date-first | Name-first |
+| --- | --- | --- |
+| Application + one day | 1/16 | 8/16 |
+| Application + one day + event name | 1/16 | 1/16 |
+
+Both keys returned the same counts for each shape. The date-first key is preferable for this workload; other distributions and wider ranges may behave differently. Granule selection is not a latency measurement. The full benchmark remains in #11.
 
 The internal `ClickhouseClient#insert_events` takes normalized symbol-keyed event hashes (including UTC-convertible Time values and a properties object). It sends one synchronous JSONEachRow insert. `#query(sql, bindings: {})` accepts trusted developer-authored SQL with typed placeholders such as `{application:UUID}` and passes escaped values as HTTP parameters, never SQL interpolation. Neither method is a public API yet. The client uses no ambient proxy or automatic retry, buffers the server response, rejects invalid or incomplete results and returns generic errors without raw server messages or causes. Whole-request deadlines are 15 seconds for queries/DDL and 30 seconds for inserts, connection deadline 2 seconds. Server execution limits are best-effort; a timed-out write may have committed. Repeating it can append duplicates.
 
