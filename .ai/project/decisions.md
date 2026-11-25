@@ -55,3 +55,7 @@ The owner explicitly authorized completion of #2 inside PR #12: product README, 
 ## Analytics choices — issue #7
 
 - D-021: Three fixed, typed queries with the same authenticated UUID and filter predicates: exact whole-range counts, UTC daily aggregates, and deterministic top ten. Reuse the 15s per-query client deadline rather than introduce a separate client configuration. The three requests may observe concurrent inserts differently; no cross-query snapshot is promised. Rails fills zero days from the original half-open UTC range. Round both input bounds upward to stored millisecond precision to avoid off-by-one membership; keep original bounds for the 90-day limit and date buckets. See README for accepted timestamp/filter formats and response fields.
+
+## Generator choices — issue #9
+
+- D-022: EVENT_COUNT is total across two explicitly ordered existing application UUIDs, allocated approximately 2:1. Version 1 uses the pinned Ruby Random algorithm, normalized half-open millisecond bounds and weighted distributions; event UUIDs derive from SHA-256 of version, count, seed, normalized bounds, ordered UUIDs and ordinal. Only received_at differs between identical logical runs. Fixed maximum batch 10,000 rows; no retries or automatic deletion. The separate million-event verification uses real storage and measures generator process resources, not HTTP throughput. The HTTP example depends on #6 and remains pending.
