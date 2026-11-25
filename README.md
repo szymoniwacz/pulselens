@@ -1,6 +1,6 @@
 # PulseLens
 
-PulseLens is an event analytics application built with Ruby on Rails and ClickHouse. It collects application events through an authenticated HTTP API and provides filtered analytics through a web dashboard.
+PulseLens is an event analytics application built with Ruby on Rails and ClickHouse. It collects application events through an authenticated HTTP API and provides filtered analytics, activity charts, unique user counts, and event breakdowns through a web dashboard. PostgreSQL manages application metadata and API authentication. The current version supports local operation with synthetic data.
 
 **Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. Authenticated synchronous HTTP ingestion, exact analytics and the synthetic event generator are available. The local dashboard is available. Cross-system integration tests are in place. [Query benchmark procedure and evidence](docs/query-benchmark.md) describe the final measurements.
 
@@ -18,7 +18,7 @@ Readiness still runs `SELECT 1` against each store. The internal event client an
 
 Versions and dependency rationale are recorded in [project decisions](.ai/project/decisions.md). Gem dependencies are locked in `Gemfile.lock`; runtime and service versions are fixed in `.ruby-version` and `compose.yaml`. The ClickHouse storage boundary uses Ruby's existing Net::HTTP and JSON libraries, without adding a gem.
 
-For a reviewer-oriented overview of the storage boundary and a clean-checkout demonstration, see [product architecture and walkthrough](docs/mvp-completion.md).
+For an overview of the storage boundary and local setup, see [product architecture and walkthrough](docs/mvp-completion.md).
 
 ## Clean local setup
 

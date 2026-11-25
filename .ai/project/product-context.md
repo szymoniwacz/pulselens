@@ -3,7 +3,7 @@
 ## Product
 
 - Name: PulseLens.
-- Purpose: collect application events and provide accurate, filterable analytics.
+- Purpose: collect application events and provide accurate, filterable event analytics.
 - Users: application operators, API integrators and maintainers.
 - Primary outcome: HTTP ingestion → ClickHouse persistence → correct filtered analytics → reproducible benchmark.
 - Authoritative brief: [issue #1](https://github.com/szymoniwacz/pulselens/issues/1).

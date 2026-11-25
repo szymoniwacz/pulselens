@@ -4,7 +4,7 @@ Revision: scaffold-1, 2026-11-24. Source: [issue #1](https://github.com/szymoniw
 
 ## Project summary
 
-PulseLens is an event analytics application for collecting and exploring application events. The current version supports local operation with synthetic data.
+PulseLens is an event analytics application for collecting and exploring application events. An operator registers an application, submits synthetic events, views filtered analytics and reproduces measurements over one million events. The current version supports local operation following the README from a clean checkout.
 
 The source establishes product intent and requested behavior; it explicitly labels technical design as a proposal. Below, functional requirements preserve the requested MVP contract. The owner has now approved A-01–A-09 through D-004–D-014. Versions, ClickHouse library, timeout values and sorting-key selection are delegated to the relevant tasks; approval does not authorize implementation; repository readiness is evaluated separately below.
 
@@ -12,8 +12,8 @@ The source establishes product intent and requested behavior; it explicitly labe
 
 | User | Needs | Notes |
 |---|---|---|
-| Developer/maintainer | Operate the demo, understand storage/query trade-offs | Local synthetic data only |
-| API integrator/maintainer | Reproduce behavior, inspect tests and measurements | No public hosting or login required |
+| Application operator | Collect and explore application activity | Local synthetic data only |
+| API integrator/maintainer | Integrate event collection, verify behavior and maintain the application | No public hosting or login required |
 
 ## Problems to solve
 
@@ -77,8 +77,8 @@ All rows are must-have MVP outcomes from issue #1 plus explicit owner clarificat
 | Key | Operator | Full key once; never persisted in clear or logged |
 | Ingest response | Client | Status contracts in FR-005; no transactional/exactly-once claim |
 | Analytics | API/dashboard | FR-006–007; bounded UTC range and application isolation |
-| Dashboard | Local reviewer | FR-008; keys stay server-side |
-| Benchmark report | Reviewer | FR-013; measurement evidence, no speed target invented |
+| Dashboard | Application operator | FR-008; keys stay server-side |
+| Benchmark report | Maintainer | FR-013; measurement evidence, no speed target invented |
 
 ## Integrations and technical preferences
 
@@ -155,7 +155,7 @@ The smallest useful vertical slice is one application, HTTP ingestion and correc
 
 | Area | Status | Value / notes | Link / location / return trigger |
 |---|---|---|---|
-| Product purpose | decided | Application event collection and analytics | Source #1 Goal; vision.md; D-001 |
+| Product purpose | decided | Collect and analyze application events; local synthetic-data operation | Source #1 Goal; vision.md; D-001 |
 | Users | decided | Application operators, API integrators and maintainers | Source #1 Goal; Users |
 | Outcomes | decided | Reproducible ingestion → analytics → benchmark | Source #1 User journey; Goals |
 | Success criteria | decided | Clean checkout, correct dashboard, CI and reproducible measurements | Source #1 MVP completion; Goals |

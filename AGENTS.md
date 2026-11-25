@@ -2,7 +2,7 @@
 
 ## Repository role
 
-PulseLens is an event analytics application supporting local operation with synthetic data. Its approved stack is a Rails API and server-rendered dashboard, PostgreSQL application metadata/API authentication, ClickHouse event analytics, Docker Compose and RSpec.
+PulseLens is an event analytics application. The current version supports local operation with synthetic data. Its approved stack is a Rails API and server-rendered dashboard, PostgreSQL application metadata/API authentication, ClickHouse event analytics, Docker Compose and RSpec.
 
 The scaffold from issue #3 provides operational health endpoints and local dependencies; domain features remain in later issues. Real setup/run/test/build/lint commands live in README.md and bin/check. There is no static typechecker; the Rails autoload check is documented. Use .ruby-version and Gemfile.lock, not commands from reusable profile examples.
 
