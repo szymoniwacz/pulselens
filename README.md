@@ -46,7 +46,7 @@ curl --fail http://127.0.0.1:3000/ready
 
 `/up` returns 200 when Rails is running without contacting either database. `/ready` returns JSON and 200 only after successful PostgreSQL and authenticated ClickHouse queries; otherwise it returns 503 with per-dependency `ok`/`unavailable` states. Responses and probe logs omit credentials, connection URLs and exception messages. Readiness responses are not cached.
 
-Finite bootstrap limits: PostgreSQL connection/pool wait 2 seconds and statement timeout 1 second; ClickHouse HTTP open/read/write timeouts 2 seconds each, with automatic retries disabled. These are per-operation limits, not a guarantee that the combined endpoint finishes within 2 seconds. The event client's insert/query limits will be designed in issue #5.
+Finite bootstrap limits: PostgreSQL application-pool wait/connect timeout is 2 seconds and server statement timeout is 1 second. Readiness uses a separate short-lived PostgreSQL connection with a 2-second client budget for name resolution, handshake and `SELECT 1`. It owns the connection before interruptible communication starts and always closes it, including on a stalled handshake or query; it never borrows or damages application-pool connections. ClickHouse has 2-second HTTP open/read/write limits and a 2-second deadline for the complete request, including continuously arriving partial responses, with automatic retries disabled and socket cleanup on interruption. The stores are checked sequentially, so these are not a 2-second deadline for the combined endpoint. The event client's insert/query limits will be designed in issue #5.
 
 ## Checks and build
 
@@ -73,7 +73,7 @@ RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
 
 The last command builds static CSS assets; `SECRET_KEY_BASE_DUMMY` is for asset compilation only, not deployment. There is no JavaScript build or static typechecker in this Ruby scaffold; Zeitwerk validates Rails autoloading, not types.
 
-GitHub Actions retains the workflow adapter checks and adds a product job using the same pinned Compose services. It prepares the test database, runs real-service specs/lint/autoload checks, builds assets, then stops each database in turn to prove `/up` stays healthy while `/ready` returns 503. No arbitrary query-latency threshold is enforced.
+GitHub Actions retains the workflow adapter checks and adds a product job using the same pinned Compose services. It prepares the test database, runs real-service specs/lint/autoload checks, builds assets, simulates stalled PostgreSQL handshakes and queries to check the client deadline, socket cleanup, an unchanged application pool and recovery, then stops each database in turn to prove `/up` stays healthy while `/ready` returns 503. No arbitrary query-latency threshold is enforced.
 
 To reproduce the controlled outage checks in an exported `.env` shell, with Rails tests using the test environment:
 

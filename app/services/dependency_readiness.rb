@@ -1,7 +1,11 @@
 require "net/http"
+require "resolv"
+require "timeout"
 
 # Connectivity probes only. Event inserts, schema setup and analytical SQL belong to later goals.
 class DependencyReadiness
+  PROBE_TIMEOUT = 2
+
   def call
     { postgresql: check("PostgreSQL") { postgresql_ready? },
       clickhouse: check("ClickHouse") { clickhouse_ready? } }
@@ -18,9 +22,37 @@ class DependencyReadiness
   end
 
   def postgresql_ready?
-    ActiveRecord::Base.connection_pool.with_connection do |connection|
-      connection.select_value("SELECT 1").to_i == 1
+    config = ActiveRecord::Base.connection_db_config.configuration_hash
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + PROBE_TIMEOUT
+    hostaddr = before_deadline(deadline) { Resolv.getaddress(config.fetch(:host)) }
+    # Own the handle before starting any interruptible network operation. A
+    # timeout inside PG.connect could otherwise orphan its unfinished socket.
+    # A dedicated probe never borrows or damages application pool connections.
+    connection = PG::Connection.connect_start(
+      **config.slice(:port, :password, :sslmode, :options),
+      host: config.fetch(:host), hostaddr: hostaddr,
+      user: config.fetch(:username), dbname: config.fetch(:database)
+    )
+    before_deadline(deadline) do
+      loop do
+        case connection.connect_poll
+        when PG::PGRES_POLLING_OK then break
+        when PG::PGRES_POLLING_READING then connection.socket_io.wait_readable
+        when PG::PGRES_POLLING_WRITING then connection.socket_io.wait_writable
+        else raise PG::ConnectionBad, "PostgreSQL connection failed"
+        end
+      end
+      connection.setnonblocking(true)
+      connection.exec("SELECT 1") { |result| result.getvalue(0, 0) == "1" }
     end
+  ensure
+    connection&.finish unless connection&.finished?
+  end
+
+  def before_deadline(deadline)
+    remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    raise Timeout::Error if remaining <= 0
+    Timeout.timeout(remaining) { yield }
   end
 
   def clickhouse_ready?
@@ -38,7 +70,7 @@ class DependencyReadiness
     request = Net::HTTP::Post.new("/")
     request.basic_auth(ENV.fetch("CLICKHOUSE_USER", "pulselens"), ENV.fetch("CLICKHOUSE_PASSWORD", ""))
     request.body = "SELECT 1 FORMAT TabSeparated"
-    response = http.request(request)
+    response = Timeout.timeout(PROBE_TIMEOUT) { http.request(request) }
     response.is_a?(Net::HTTPSuccess) && response.body.strip == "1"
   end
 end
