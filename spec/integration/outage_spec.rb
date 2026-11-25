@@ -12,4 +12,14 @@ RSpec.describe "Real dependency outage", :outage, type: :request do
     other = dependency == "postgresql" ? "clickhouse" : "postgresql"
     expect(response.parsed_body["checks"][other]).to eq("ok")
   end
+
+  if ENV["EXPECT_UNAVAILABLE"] == "clickhouse"
+    it "fails the event client safely while ClickHouse is stopped" do
+      expect { ClickhouseClient.new.query("SELECT 1") }.to raise_error(
+        ClickhouseClient::Unavailable, "ClickHouse unavailable or operation timed out"
+      ) do |error|
+        expect(error.cause).to be_nil
+      end
+    end
+  end
 end
