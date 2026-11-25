@@ -1,0 +1,104 @@
+<header class="site-header">
+  <div class="shell header-content">
+    <div><span class="brand">PulseLens</span><span class="header-caption"> / Event analytics</span></div>
+    <span class="local-label">Local demo · UTC</span>
+  </div>
+</header>
+<main class="shell dashboard">
+  <div class="intro">
+    <p class="eyebrow">Analytics workspace</p>
+    <h1>Application activity</h1>
+    <p class="muted">Explore synthetic events, returning users and the most frequent event names.</p>
+  </div>
+  <section class="panel filters" aria-labelledby="filters-heading">
+    <h2 id="filters-heading">Filters</h2>
+    <%= form_with url: root_path, method: :get, local: true do %>
+      <div class="filter-grid">
+        <div class="field application-field">
+          <%= label_tag :application_id, "Demo application" %>
+          <%= select_tag :application_id, options_for_select(@applications.map { |id, name| [ "#{name} (#{id})", id ] }, @form.fetch("application_id")), include_blank: "Choose an application", required: true %>
+        </div>
+        <div class="field">
+          <%= label_tag :from, "From (UTC, inclusive)" %>
+          <%= date_field_tag :from, @form.fetch("from"), required: true, min: "1900-01-01", max: "2299-12-31", "aria-describedby": "date-help" %>
+        </div>
+        <div class="field">
+          <%= label_tag :to, "To (UTC, exclusive)" %>
+          <%= date_field_tag :to, @form.fetch("to"), required: true, min: "1900-01-01", max: "2299-12-31", "aria-describedby": "date-help" %>
+        </div>
+        <div class="field">
+          <%= label_tag :name, "Event name" %>
+          <%= text_field_tag :name, @form.fetch("name"), placeholder: "All names" %>
+        </div>
+        <div class="field">
+          <%= label_tag :platform, "Platform" %>
+          <%= select_tag :platform, options_for_select(AnalyticsFilters::PLATFORMS, @form.fetch("platform")), include_blank: "All platforms" %>
+        </div>
+        <div class="field">
+          <%= label_tag :country, "Country" %>
+          <%= select_tag :country, options_for_select([ "unknown", *AnalyticsFilters::COUNTRIES ], @form.fetch("country")), include_blank: "All countries" %>
+        </div>
+      </div>
+      <p id="date-help" class="hint">Dates represent midnight UTC. The end date is excluded; maximum range: 90 days.</p>
+      <div class="actions">
+        <%= submit_tag "Apply filters", name: nil, disabled: @applications.empty?, class: "primary-button" %>
+        <%= link_to "Reset filters", root_path, class: "reset-link" %>
+      </div>
+    <% end %>
+  </section>
+
+  <% if @error %>
+    <section class="notice error" role="alert"><h2>Unable to show analytics</h2><p><%= @error %></p></section>
+  <% elsif @applications.empty? %>
+    <section class="notice" id="initial-state"><h2>No demo applications</h2><p>Create one with the documented <code>applications:create</code> command, then reload this page.</p></section>
+  <% elsif !@result %>
+    <section class="notice" id="initial-state"><h2>Select an application</h2><p>Choose an application and date range, then apply filters to view activity.</p></section>
+  <% else %>
+    <section class="metrics" aria-label="Range totals">
+      <div class="panel metric"><h2>Total events</h2><p id="total-events"><%= @result.fetch(:total_events) %></p><span class="muted">Matching the selected filters</span></div>
+      <div class="panel metric"><h2>Unique users</h2><p id="unique-users"><%= @result.fetch(:unique_users) %></p><span class="muted">Distinct across the entire range</span></div>
+    </section>
+    <% if @result.fetch(:total_events).zero? %>
+      <section class="notice" id="empty-state"><h2>No matching events</h2><p>Try another date range or change the filters. You can also ingest or generate synthetic data.</p></section>
+    <% end %>
+    <section class="panel chart-panel" aria-labelledby="daily-heading">
+      <h2 id="daily-heading">Daily activity</h2>
+      <p class="muted">Events and distinct active users per UTC day</p>
+      <%= render "daily_chart", daily: @result.fetch(:daily) %>
+      <details open>
+        <summary>Daily values (exact)</summary>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Daily activity values">
+          <table id="daily-values">
+            <caption class="sr-only">Daily events and active users</caption>
+            <thead><tr><th scope="col">Date (UTC)</th><th scope="col">Events</th><th scope="col">Active users</th></tr></thead>
+            <tbody>
+              <% @result.fetch(:daily).each do |day| %>
+                <tr><th scope="row"><%= day.fetch(:date) %></th><td><%= day.fetch(:events) %></td><td><%= day.fetch(:active_users) %></td></tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+    <section class="panel" aria-labelledby="top-heading">
+      <h2 id="top-heading">Top event names</h2>
+      <p class="muted">Up to 10 names, ordered by event count</p>
+      <% if @result.fetch(:top_events).empty? %>
+        <p>No event names to display.</p>
+      <% else %>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Top event names">
+          <table id="top-events">
+            <caption class="sr-only">Top event names and counts</caption>
+            <thead><tr><th scope="col">Event name</th><th scope="col">Count</th></tr></thead>
+            <tbody>
+              <% @result.fetch(:top_events).each do |event| %>
+                <tr><th scope="row"><%= event.fetch(:name) %></th><td><%= event.fetch(:count) %></td></tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+  <footer>Local synthetic data only. No dashboard authentication or public deployment.</footer>
+</main>

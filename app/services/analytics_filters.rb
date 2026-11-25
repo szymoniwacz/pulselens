@@ -1,7 +1,7 @@
 require "date"
 require "time"
 
-# Shared input contract for the API and the future local dashboard.
+# Shared input contract for the API and the local dashboard.
 class AnalyticsFilters
   class Invalid < StandardError; end
 

@@ -1,0 +1,25 @@
+<% peak = [1, daily.map { |day| [day.fetch(:events), day.fetch(:active_users)].max }.max].max %>
+<% slot = [48, 544 / daily.length].max %>
+<% width = 72 + slot * daily.length + 16 %>
+<div class="legend" aria-hidden="true"><span><i class="swatch events"></i> Events</span><span><i class="swatch users"></i> Active users</span></div>
+<div class="chart-scroll" tabindex="0" role="region" aria-label="Scrollable daily activity chart">
+  <svg width="<%= width %>" height="232" viewBox="0 0 <%= width %> 232" role="img" aria-labelledby="chart-title chart-description">
+    <title id="chart-title">Daily events and active users</title>
+    <desc id="chart-description">Grouped bars share one count scale. Exact daily values are in the table below.</desc>
+    <line class="chart-grid" x1="72" y1="20" x2="<%= width - 16 %>" y2="20"/>
+    <line class="chart-grid" x1="72" y1="100" x2="<%= width - 16 %>" y2="100"/>
+    <line class="chart-grid" x1="72" y1="180" x2="<%= width - 16 %>" y2="180"/>
+    <text class="axis-label" x="64" y="24" text-anchor="end"><%= number_to_human(peak) %></text>
+    <text class="axis-label" x="64" y="184" text-anchor="end">0</text>
+    <% daily.each_with_index do |day, index| %>
+      <% x = 72 + slot * index + slot / 2 %>
+      <% [[:events, -13, "events"], [:active_users, 1, "users"]].each do |key, offset, css| %>
+        <% count = day.fetch(key) %>
+        <% height = count.zero? ? 0 : [1, (count * 160).fdiv(peak).round].max %>
+        <rect class="chart-bar <%= css %>" x="<%= x + offset %>" y="<%= 180 - height %>" width="12" height="<%= height %>" rx="2"><title><%= day.fetch(:date) %> · <%= key == :events ? "Events" : "Active users" %>: <%= count %></title></rect>
+      <% end %>
+      <text class="axis-label" x="<%= x %>" y="203" text-anchor="middle"><%= day.fetch(:date)[5, 5] %></text>
+    <% end %>
+    <text class="axis-label" x="<%= (72 + width - 16) / 2 %>" y="225" text-anchor="middle">UTC date (MM-DD)</text>
+  </svg>
+</div>

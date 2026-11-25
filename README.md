@@ -2,13 +2,13 @@
 
 PulseLens is a small Ruby on Rails event analytics demo for learning ClickHouse and discussing backend design during recruitment. It is for a developer running a local synthetic-data demo and a reviewer exploring the architecture, tests and measurements.
 
-**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. Authenticated synchronous HTTP ingestion, exact analytics and the synthetic event generator are available. Dashboard and full benchmarks remain planned.
+**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. Authenticated synchronous HTTP ingestion, exact analytics and the synthetic event generator are available. The local dashboard is available. Full benchmarks remain planned.
 
 ## Architecture and versions
 
 | Component | Pinned version | Responsibility |
 |---|---|---|
-| Ruby / Rails | 3.4.13 / 8.1.4.1 | Synchronous API, validation and a future server-rendered dashboard |
+| Ruby / Rails | 3.4.13 / 8.1.4.1 | Synchronous API, validation and a server-rendered dashboard |
 | PostgreSQL | 17.12 (Debian Bookworm image) | Application metadata and API key digests |
 | ClickHouse | 26.8.46.6 | Event storage and exact analytical aggregations |
 | Docker Compose | v2 with `up --wait` | Local dependencies and persistent database volumes |
@@ -100,7 +100,19 @@ The response contains integer `total_events`, `unique_users`, `daily` (objects w
 
 `from` and `to` are required ISO-8601 timestamps with `Z` or an explicit numeric offset; UTC years 1900–2299, seconds and optional fractional seconds (up to nine digits). The range must be positive and no longer than 90 elapsed days. Both bounds are normalized to UTC and rounded up to the next stored millisecond when needed, preserving inclusive-from/exclusive-to semantics. Daily buckets use UTC dates intersecting the original range, including partial days but excluding an exact-midnight end date. Optional filters: nonblank `name` up to 128 UTF-8 bytes, `platform` (web/ios/android/unknown), and uppercase ISO 3166-1 alpha-2 `country` or `unknown`. Filters combine with AND. Empty or invalid filter values return 422; missing/invalid credentials return 401; unavailable storage returns 503. Unknown query parameters cannot override the authenticated application identity.
 
-`EventAnalytics` is shared with the future dashboard and accepts a trusted server-selected application UUID and validated `AnalyticsFilters`. It runs three parameterized ClickHouse queries for exact range counts (`uniqExact`), daily counts and top ten ordered by count DESC/name ASC. Rails only converts counts to integers and fills missing dates. Each query has the existing 15-second client deadline (up to 45 seconds across three sequential queries, plus authentication and Rails overhead). No common snapshot across the three queries is promised while writes are concurrent. This local demo does not impose a latency threshold or offer production rate limiting.
+`EventAnalytics` is shared with the dashboard and accepts a trusted server-selected application UUID and validated `AnalyticsFilters`. It runs three parameterized ClickHouse queries for exact range counts (`uniqExact`), daily counts and top ten ordered by count DESC/name ASC. Rails only converts counts to integers and fills missing dates. Each query has the existing 15-second client deadline (up to 45 seconds across three sequential queries, plus authentication and Rails overhead). No common snapshot across the three queries is promised while writes are concurrent. This local demo does not impose a latency threshold or offer production rate limiting.
+
+## Local dashboard
+
+After `bin/setup` and `bin/dev`, open <http://127.0.0.1:3000/>. Create at least one demo application using the operator command above and populate it through HTTP ingestion or the generator. Select the application by name and UUID, choose the UTC date range, optionally filter by exact event name, platform and country, then select **Apply filters**. To inspect the documented ingestion example, use 2026-11-01 as From and 2026-11-04 as To; for the generator example use 2026-11-01 and 2026-12-01.
+
+The dashboard starts without a selected application; the default range covers the current UTC day and the preceding six days. Date inputs represent midnight UTC, with an inclusive start and exclusive end, at most 90 days. Blank optional controls mean no filter; invalid selections or filters display a 422 error. The API also supports sub-day timestamps; for equivalent midnight bounds both surfaces call the same `AnalyticsFilters` and `EventAnalytics` services. Application IDs are resolved against the server-side PostgreSQL list. The dashboard requests only application UUIDs and names, not key digests, and does not call its own HTTP API or put API keys in HTML, JavaScript, URLs or browser requests. The page has no JavaScript or external frontend dependency.
+
+The counters show exact range totals and unique users; the grouped SVG chart shows daily events and active users on one scale, and the adjacent expandable table contains the exact values, including zero days. Top names retain the shared ordering and limit. No applications, no selection, no matching events, invalid filters and unavailable dependencies have explicit states; storage failures return 503 without presenting stale or partial results.
+
+**Local trust boundary:** the dashboard is deliberately unauthenticated. It is restricted to development/test and local requests; run the supplied loopback-bound Puma configuration, and never expose it through a public bind, tunnel or reverse proxy. Local callers may select any demo application. Public access would require separate authentication and authorization and is outside the MVP.
+
+Manual verification after setup: open the page with no selection; navigate labels, date inputs, selects, Apply and Reset with Tab and keyboard; inspect the chart and exact table on a narrow and a wide viewport; switch applications, apply filters, choose an empty range and check invalid-date and dependency-error states. With browser developer tools, verify that the GET request includes only UUID/date/filter fields and that no key or digest is present in the response or subsequent requests. Real-service request specs compare dashboard counters, daily values and top events to the authenticated API for identical filters. Browser/manual checks are additional to those specs.
 
 ## Liveness and readiness
 
@@ -238,7 +250,7 @@ The SQL verification confirmed all expected counts and UTC bounds. This is a sin
 
 ## Planned MVP and limitations
 
-The remaining full MVP work includes the dashboard, cross-system coverage and reproducible query measurements. See [requirements](.ai/docs/project-requirements.md) and the [roadmap](.ai/project/roadmap.md).
+The remaining full MVP work includes cross-system coverage and reproducible query measurements. See [requirements](.ai/docs/project-requirements.md) and the [roadmap](.ai/project/roadmap.md).
 
 - Local demo only: no public hosting, user accounts, roles or dashboard login.
 - No real personal data, provider integrations, Kafka, queues or separate frontend.
