@@ -185,7 +185,24 @@ The verification runner creates two new isolated test applications, invokes the 
 RAILS_ENV=test bin/rails runner scripts/verify-generator.rb
 ```
 
-On Linux, prefix with `/usr/bin/time -v` to record wall time and peak generator-process RSS (not ClickHouse server memory); on macOS use `/usr/bin/time -l`. The separate Generator verification GitHub Actions workflow runs this against real services for relevant pull requests and supports manual dispatch after merge. No latency target is asserted. Actual measurement evidence must be recorded after execution. This verifies the direct insert path, **not HTTP ingestion throughput**. A separate HTTP ingestion example remains pending #6; no unimplemented endpoint is advertised.
+On Linux, prefix with `/usr/bin/time -v` to record wall time and peak generator-process RSS (not ClickHouse server memory); on macOS use `/usr/bin/time -l`. The separate Generator verification GitHub Actions workflow runs this against real services for relevant pull requests and supports manual dispatch after merge. No latency target is asserted. This verifies the direct insert path, **not HTTP ingestion throughput**. A separate HTTP ingestion example remains pending #6; no unimplemented endpoint is advertised.
+
+### Observed million-event verification
+
+[GitHub Actions run 45628527347](https://github.com/szymoniwacz/pulselens/actions/runs/45628527347), 2026-11-25, commit `f2f8098`, generator v1. GitHub-hosted Ubuntu 26.04 x86_64 (image 20261116.88.1), Ruby 3.4.13, Rails 8.1.4.1, PostgreSQL 17.12 and ClickHouse 26.8.46.6; test database, seed 42, UTC range `[2026-11-01T00:00:00Z, 2026-12-01T00:00:00Z)`. The ordered application mapping for this run is recorded in the job log (first `c74b5045-3a09-41f0-8f23-68f1e4429ad5`, second `41907a71-eec0-4b4d-a8d0-d50eb1b180d6`).
+
+| Metric | Observed value |
+|---|---:|
+| Confirmed events / distinct event UUIDs | 1,000,000 / 1,000,000 |
+| Events per application (first / second) | 666,666 / 333,334 |
+| Unique synthetic users per application | 256 |
+| Event names / platforms / countries per application | 4 / 3 / 5 |
+| Batches / maximum rows per batch | 100 / 10,000 |
+| Generation and synchronous insertion elapsed | 11.019 s |
+| Rails runner wall time, including verification | 12.38 s |
+| Peak runner-process RSS | 144,120 KiB (140.74 MiB) |
+
+The SQL verification confirmed all expected counts and UTC bounds. This is a single CI observation, not a local workstation run, a memory-scaling experiment, a server-memory measurement or an HTTP/analytics benchmark. A fresh application mapping changes event UUIDs; repeat an identical mapping and seed to reproduce logical events, but remember that inserts append duplicates. Query benchmarking remains in #11.
 
 ## Planned MVP and limitations
 
@@ -195,7 +212,7 @@ The remaining full MVP work includes HTTP ingestion, the dashboard, cross-system
 - No real personal data, provider integrations, Kafka, queues or separate frontend.
 - No deduplication or exactly-once guarantee. Inserts do not retry automatically: lost responses can leave writes unknown and repeated submissions can increase counters.
 - No funnels, cohorts, retention/revenue analytics or materialized views.
-- No performance results yet. Later benchmarks will document exact queries, dataset/environment and first/subsequent executions, without unsupported PostgreSQL comparisons.
+- No analytics query benchmark results yet. Later benchmarks will document exact queries, dataset/environment and first/subsequent executions, without unsupported PostgreSQL comparisons.
 
 ## Project context and contribution
 

@@ -27,4 +27,4 @@ A-01–A-09 are approved (D-004–D-014): Rails/PG/ClickHouse/RSpec, input byte 
 
 ## Current authorization
 
-PR #12 merged to main at 1081c21; #2 is complete and dependency preflight for scaffold #3 passed. PR #13 merged to main at f7de086; #3 is closed. PR #15 merged at 1ce3698; #5 is closed. PR #16 merged at 61e43b0; #4 is closed. PR #17 merged at 9649b93; #7 is closed. Issue #9 is authorized for implementation; the million-event run and review remain required, and the separate HTTP ingestion example depends on #6. [Roadmap](roadmap.md).
+PR #12 merged to main at 1081c21; #2 is complete and dependency preflight for scaffold #3 passed. PR #13 merged to main at f7de086; #3 is closed. PR #15 merged at 1ce3698; #5 is closed. PR #16 merged at 61e43b0; #4 is closed. PR #17 merged at 9649b93; #7 is closed. Issue #9 generator implementation passed real-service CI and the million-event verification (run 45628527347); owner review and local reproduction remain pending, and the separate HTTP ingestion example depends on #6. [Roadmap](roadmap.md).
