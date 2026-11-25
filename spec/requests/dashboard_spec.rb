@@ -37,6 +37,27 @@ RSpec.describe "Local analytics dashboard", type: :request do
     assert_select "script", count: 0
   end
 
+  it "serves the linked dashboard stylesheet with the current chart rules" do
+    get "/"
+    assert_select "link[rel=stylesheet]", count: 1 do |links|
+      get links.first["href"]
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("text/css")
+      expect(response.body).to include(".chart-bar.events", ".filter-grid")
+    end
+  end
+
+  it "renders a complete numeric axis label with space for large counts" do
+    allow(analytics).to receive(:call).and_return(result.merge(
+      daily: [ { date: "2026-11-01", events: 1_234_567_890, active_users: 256 } ]))
+    allow(EventAnalytics).to receive(:new).and_return(analytics)
+    get "/", params: selection
+    expect(response).to have_http_status(:ok)
+    assert_select "svg text.axis-label", text: "1,234,567,890", count: 1 do |labels|
+      expect(labels.first["x"].to_i).to be >= labels.first.text.length * 8
+    end
+  end
+
   it "shows a helpful empty application list" do
     allow(relation).to receive(:pluck).with(:id, :name).and_return([])
     expect(EventAnalytics).not_to receive(:new)
