@@ -1,0 +1,54 @@
+name: Query benchmark
+
+on:
+  pull_request:
+    paths:
+      - scripts/benchmark-queries.rb
+      - scripts/query_benchmark.rb
+      - .github/workflows/query-benchmark.yml
+      - app/services/event_analytics.rb
+      - app/services/analytics_filters.rb
+      - app/services/clickhouse_client.rb
+      - app/services/synthetic_event_generator.rb
+      - scripts/verify-generator.rb
+      - db/clickhouse/**
+      - compose.yaml
+      - Gemfile.lock
+  workflow_dispatch:
+
+jobs:
+  query-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RAILS_ENV: test
+      POSTGRES_USER: pulselens
+      POSTGRES_PASSWORD: ci-only-postgres
+      CLICKHOUSE_USER: pulselens
+      CLICKHOUSE_PASSWORD: ci-only-clickhouse
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Prepare clean services and schemas
+        run: |
+          touch .env
+          env -u RAILS_ENV bin/setup
+      - name: Verify fresh million-event fixture and measure actual analytics SQL
+        shell: bash
+        run: |
+          BENCHMARK_GENERATE=1 bin/rails runner scripts/benchmark-queries.rb | tee query-benchmark.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: query-benchmark
+          path: query-benchmark.json
+          if-no-files-found: error
+      - name: Dependency status
+        if: failure()
+        run: docker compose ps --all
+      - name: Stop services without deleting volumes
+        if: always()
+        run: docker compose down
