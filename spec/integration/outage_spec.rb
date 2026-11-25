@@ -13,6 +13,26 @@ RSpec.describe "Real dependency outage", :outage, type: :request do
     expect(response.parsed_body["checks"][other]).to eq("ok")
   end
 
+  if ENV["EXPECT_UNAVAILABLE"] == "postgresql"
+    it "cannot authenticate when PostgreSQL is stopped" do
+      stub_const("OutageAuthenticationProbeController", Class.new(Api::BaseController) do
+        def show
+          render json: { application_id: current_application.id }
+        end
+      end)
+      Rails.application.routes.draw do
+        get "/__outage_auth_probe", to: "outage_authentication_probe#show"
+      end
+      key = ApplicationApiKey.generate
+      get "/__outage_auth_probe", headers: { "Authorization" => "Bearer #{key}" }
+      expect(response).to have_http_status(:service_unavailable)
+      expect(response.parsed_body).to eq("error" => "Service unavailable")
+      expect(response.headers["Cache-Control"]).to include("no-store")
+    ensure
+      Rails.application.reload_routes!
+    end
+  end
+
   if ENV["EXPECT_UNAVAILABLE"] == "clickhouse"
     it "fails the event client safely while ClickHouse is stopped" do
       expect { ClickhouseClient.new.query("SELECT 1") }.to raise_error(
