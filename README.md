@@ -2,7 +2,7 @@
 
 PulseLens is an event analytics application built with Ruby on Rails and ClickHouse. It collects application events through an authenticated HTTP API and provides filtered analytics through a web dashboard.
 
-**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. Authenticated synchronous HTTP ingestion, exact analytics and the synthetic event generator are available. The local dashboard is available. Full benchmarks remain planned.
+**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. Authenticated synchronous HTTP ingestion, exact analytics and the synthetic event generator are available. The local dashboard is available. Cross-system integration tests are in place. [Query benchmark procedure and evidence](docs/query-benchmark.md) describe the final measurements.
 
 ## Architecture and versions
 
@@ -17,6 +17,8 @@ PulseLens is an event analytics application built with Ruby on Rails and ClickHo
 Readiness still runs `SELECT 1` against each store. The internal event client and schema now support synchronous inserts and typed queries; PostgreSQL stores application metadata and key digests. The shared analytics service computes exact aggregates in ClickHouse. HTTP ingestion validates the complete batch before one synchronous insert. There are no queues, workers or cross-database transactions.
 
 Versions and dependency rationale are recorded in [project decisions](.ai/project/decisions.md). Gem dependencies are locked in `Gemfile.lock`; runtime and service versions are fixed in `.ruby-version` and `compose.yaml`. The ClickHouse storage boundary uses Ruby's existing Net::HTTP and JSON libraries, without adding a gem.
+
+For a reviewer-oriented overview of the storage boundary and a clean-checkout demonstration, see [product architecture and walkthrough](docs/mvp-completion.md).
 
 ## Clean local setup
 
@@ -254,17 +256,17 @@ On Linux, prefix with `/usr/bin/time -v` to record wall time and peak generator-
 | Rails runner wall time, including verification | 12.38 s |
 | Peak runner-process RSS | 144,120 KiB (140.74 MiB) |
 
-The SQL verification confirmed all expected counts and UTC bounds. This is a single CI observation, not a local workstation run, a memory-scaling experiment, a server-memory measurement or an HTTP/analytics benchmark. A fresh application mapping changes event UUIDs; repeat an identical mapping and seed to reproduce logical events, but remember that inserts append duplicates. Query benchmarking remains in #11.
+The SQL verification confirmed all expected counts and UTC bounds. This is a single CI observation, not a local workstation run, a memory-scaling experiment, a server-memory measurement or an HTTP/analytics benchmark. A fresh application mapping changes event UUIDs; repeat an identical mapping and seed to reproduce logical events, but remember that inserts append duplicates. For the measured analytics queries, see the [local and CI query benchmark results](docs/query-benchmark.md#query-measurement-evidence).
 
-## Planned MVP and limitations
+## MVP limitations
 
-The remaining full MVP work includes cross-system coverage and reproducible query measurements. See [requirements](.ai/docs/project-requirements.md) and the [roadmap](.ai/project/roadmap.md).
+See the [completion evidence](docs/mvp-completion.md) for verification of the source requirements and remaining evidence gaps. See [requirements](.ai/docs/project-requirements.md) and the [roadmap](.ai/project/roadmap.md).
 
 - Local demo only: no public hosting, user accounts, roles or dashboard login.
 - No real personal data, provider integrations, Kafka, queues or separate frontend.
 - No deduplication or exactly-once guarantee. Inserts do not retry automatically: lost responses can leave writes unknown and repeated submissions can increase counters.
 - No funnels, cohorts, retention/revenue analytics or materialized views.
-- No analytics query benchmark results yet. Later benchmarks will document exact queries, dataset/environment and first/subsequent executions, without unsupported PostgreSQL comparisons.
+- Query benchmark results are environment-specific, not HTTP throughput or a comparison with PostgreSQL. See [query benchmark](docs/query-benchmark.md).
 
 ## Project context and contribution
 

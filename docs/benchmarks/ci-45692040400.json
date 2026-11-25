@@ -1,0 +1,739 @@
+{
+  "report_version": 1,
+  "measured_at_utc": "2026-11-25T20:09:09Z",
+  "environment": {
+    "git_head": "f21db74ea7a79f78bf23917b6818a516e344109e",
+    "environment": "test",
+    "ruby": "ruby 3.4.13 (2026-11-19 revision 48857d6f2e) +PRISM [x86_64-linux]",
+    "rails": "8.1.4.1",
+    "postgres": "17.12 (Debian 17.12-1.pgdg12+1)",
+    "clickhouse": "26.8.46.6",
+    "server_settings": [
+      {
+        "name": "max_memory_usage",
+        "value": "0"
+      },
+      {
+        "name": "max_threads",
+        "value": "auto(4)"
+      },
+      {
+        "name": "use_query_cache",
+        "value": "0"
+      },
+      {
+        "name": "use_query_condition_cache",
+        "value": "1"
+      }
+    ],
+    "host": {
+      "sysname": "Linux",
+      "release": "7.0.0-1020-azure",
+      "machine": "x86_64"
+    },
+    "host_logical_cpus": 4,
+    "mac_model": null,
+    "mac_memory_bytes": null,
+    "linux_cpu_model": "AMD EPYC 7763 64-Core Processor",
+    "linux_memory_kib": "16366636",
+    "docker_engine_cpus_memory_bytes": "29.4.2 4 16759435264",
+    "compose": "5.1.3"
+  },
+  "dataset": {
+    "seed": 42,
+    "seed_provenance": "generated in this process",
+    "generator_version": 1,
+    "from": "2026-11-01T00:00:00Z",
+    "to": "2026-12-01T00:00:00Z",
+    "applications": [
+      {
+        "application_id": "81ac800f-5802-440f-b8ec-849c42ece60d",
+        "counts": {
+          "events": 666666,
+          "event_ids": 666666,
+          "users": 256,
+          "names": 4,
+          "platforms": 3,
+          "countries": 5,
+          "unexpected_properties": 0
+        },
+        "first_event": "2026-11-01 00:00:01.227",
+        "last_event": "2026-11-30 23:59:46.422"
+      },
+      {
+        "application_id": "18cfd37f-38d1-4bb1-ac64-19553e8eeb7f",
+        "counts": {
+          "events": 333334,
+          "event_ids": 333334,
+          "users": 256,
+          "names": 4,
+          "platforms": 3,
+          "countries": 5,
+          "unexpected_properties": 0
+        },
+        "first_event": "2026-11-01 00:00:11.412",
+        "last_event": "2026-11-30 23:59:38.863"
+      }
+    ]
+  },
+  "measurement": {
+    "repetitions": 5,
+    "settings": {
+      "default_format": "JSON",
+      "use_query_cache": 0,
+      "use_query_condition_cache": 0,
+      "output_format_write_statistics": 1
+    },
+    "query_order": "totals, daily, top names",
+    "cache_method": "dataset verification precedes samples; no cache flush or restart; first observed is not cold",
+    "client_seconds_scope": "bounded HTTP request and full response body, excluding JSON parse and Rails rendering",
+    "application_id": "81ac800f-5802-440f-b8ec-849c42ece60d",
+    "shapes": [
+      {
+        "shape": "date_only",
+        "filters": {},
+        "queries": [
+          {
+            "sql": "SELECT count() AS total_events, uniqExact(user_id) AS unique_users\nFROM events WHERE application_id = {application:UUID} AND occurred_at >= {from:DateTime64(3, 'UTC')} AND occurred_at < {to:DateTime64(3, 'UTC')}\n",
+            "bindings": {
+              "application": "81ac800f-5802-440f-b8ec-849c42ece60d",
+              "from": "2026-11-01 00:00:00.000",
+              "to": "2026-12-01 00:00:00.000"
+            }
+          },
+          {
+            "sql": "SELECT toDate32(occurred_at, 'UTC') AS day, count() AS events,\n       uniqExact(user_id) AS active_users\nFROM events WHERE application_id = {application:UUID} AND occurred_at >= {from:DateTime64(3, 'UTC')} AND occurred_at < {to:DateTime64(3, 'UTC')}\nGROUP BY day ORDER BY day ASC\n",
+            "bindings": {
+              "application": "81ac800f-5802-440f-b8ec-849c42ece60d",
+              "from": "2026-11-01 00:00:00.000",
+              "to": "2026-12-01 00:00:00.000"
+            }
+          },
+          {
+            "sql": "SELECT name, count() AS event_count FROM events WHERE application_id = {application:UUID} AND occurred_at >= {from:DateTime64(3, 'UTC')} AND occurred_at < {to:DateTime64(3, 'UTC')}\nGROUP BY name ORDER BY event_count DESC, name ASC LIMIT 10\n",
+            "bindings": {
+              "application": "81ac800f-5802-440f-b8ec-849c42ece60d",
+              "from": "2026-11-01 00:00:00.000",
+              "to": "2026-12-01 00:00:00.000"
+            }
+          }
+        ],
+        "result": {
+          "total_events": 666666,
+          "unique_users": 256,
+          "daily": [
+            {
+              "date": "2026-11-01",
+              "events": 53332,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-02",
+              "events": 53247,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-03",
+              "events": 53026,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-04",
+              "events": 53303,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-05",
+              "events": 53165,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-06",
+              "events": 53112,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-07",
+              "events": 53322,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-08",
+              "events": 53711,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-09",
+              "events": 53228,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-10",
+              "events": 53539,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-11",
+              "events": 6581,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-12",
+              "events": 6661,
+              "active_users": 255
+            },
+            {
+              "date": "2026-11-13",
+              "events": 6750,
+              "active_users": 254
+            },
+            {
+              "date": "2026-11-14",
+              "events": 6692,
+              "active_users": 253
+            },
+            {
+              "date": "2026-11-15",
+              "events": 6715,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-16",
+              "events": 6717,
+              "active_users": 255
+            },
+            {
+              "date": "2026-11-17",
+              "events": 6716,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-18",
+              "events": 6638,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-19",
+              "events": 6862,
+              "active_users": 253
+            },
+            {
+              "date": "2026-11-20",
+              "events": 6681,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-21",
+              "events": 6635,
+              "active_users": 255
+            },
+            {
+              "date": "2026-11-22",
+              "events": 6731,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-23",
+              "events": 6639,
+              "active_users": 255
+            },
+            {
+              "date": "2026-11-24",
+              "events": 6886,
+              "active_users": 255
+            },
+            {
+              "date": "2026-11-25",
+              "events": 6531,
+              "active_users": 254
+            },
+            {
+              "date": "2026-11-26",
+              "events": 6588,
+              "active_users": 256
+            },
+            {
+              "date": "2026-11-27",
+              "events": 6747,
+              "active_users": 254
+            },
+            {
+              "date": "2026-11-28",
+              "events": 6677,
+              "active_users": 251
+            },
+            {
+              "date": "2026-11-29",
+              "events": 6675,
+              "active_users": 253
+            },
+            {
+              "date": "2026-11-30",
+              "events": 6559,
+              "active_users": 255
+            }
+          ],
+          "top_events": [
+            {
+              "name": "app_open",
+              "count": 285571
+            },
+            {
+              "name": "screen_view",
+              "count": 190929
+            },
+            {
+              "name": "search",
+              "count": 95164
+            },
+            {
+              "name": "purchase",
+              "count": 95002
+            }
+          ]
+        },
+        "result_sha256": "2296ae2efc1905e9436f9ca09b89edf6364eb857d69e9ab623461072587ce58f",
+        "samples": [
+          {
+            "repetition": 1,
+            "queries": [
+              {
+                "server_seconds": 0.031734078,
+                "client_seconds": 0.033768895000001464,
+                "rows_read": 688704,
+                "bytes_read": 30037760
+              },
+              {
+                "server_seconds": 0.041575433,
+                "client_seconds": 0.04417863900000185,
+                "rows_read": 688704,
+                "bytes_read": 30037760
+              },
+              {
+                "server_seconds": 0.017404395,
+                "client_seconds": 0.021032464000001028,
+                "rows_read": 688704,
+                "bytes_read": 24499672
+              }
+            ]
+          },
+          {
+            "repetition": 2,
+            "queries": [
+              {
+                "server_seconds": 0.034153362,
+                "client_seconds": 0.03614796400000131,
+                "rows_read": 688704,
+                "bytes_read": 30037760
+              },
+              {
+                "server_seconds": 0.05106006,
+                "client_seconds": 0.05294709900000072,
+                "rows_read": 688704,
+                "bytes_read": 30037760
+              },
+              {
+                "server_seconds": 0.021294008,
+                "client_seconds": 0.0232147450000042,
+                "rows_read": 688704,
+                "bytes_read": 24499672
+              }
+            ]
+          },
+          {
+            "repetition": 3,
+            "queries": [
+              {
+                "server_seconds": 0.028936002,
+                "client_seconds": 0.030809726000001092,
+                "rows_read": 688704,
+                "bytes_read": 30037760
+              },
+              {
+                "server_seconds": 0.038879833,
+                "client_seconds": 0.0414625209999997,
+                "rows_read": 688704,
+                "bytes_read": 30037760
+              },
+              {
+                "server_seconds": 0.015095579,
+                "client_seconds": 0.01701176200000276,
+                "rows_read": 688704,
+                "bytes_read": 24499672
+              }
+            ]
+          },
+          {
+            "repetition": 4,
+            "queries": [
+              {
+                "server_seconds": 0.032961765,
+                "client_seconds": 0.034789543999998784,
+                "rows_read": 688704,
+                "bytes_read": 30037760
+              },
+              {
+                "server_seconds": 0.032718499,
+                "client_seconds": 0.034630818999993096,
+                "rows_read": 688704,
+                "bytes_read": 30037760
+              },
+              {
+                "server_seconds": 0.014711445,
+                "client_seconds": 0.01670205700000338,
+                "rows_read": 688704,
+                "bytes_read": 24499672
+              }
+            ]
+          },
+          {
+            "repetition": 5,
+            "queries": [
+              {
+                "server_seconds": 0.029303011,
+                "client_seconds": 0.03197738299999742,
+                "rows_read": 688704,
+                "bytes_read": 30037760
+              },
+              {
+                "server_seconds": 0.037300375,
+                "client_seconds": 0.03918877499999951,
+                "rows_read": 688704,
+                "bytes_read": 30037760
+              },
+              {
+                "server_seconds": 0.01593969,
+                "client_seconds": 0.017881999000003646,
+                "rows_read": 688704,
+                "bytes_read": 24499672
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "shape": "dimensions",
+        "filters": {
+          "name": "app_open",
+          "platform": "ios",
+          "country": "PL"
+        },
+        "queries": [
+          {
+            "sql": "SELECT count() AS total_events, uniqExact(user_id) AS unique_users\nFROM events WHERE application_id = {application:UUID} AND occurred_at >= {from:DateTime64(3, 'UTC')} AND occurred_at < {to:DateTime64(3, 'UTC')} AND name = {name:String} AND platform = {platform:String} AND country = {country:String}\n",
+            "bindings": {
+              "application": "81ac800f-5802-440f-b8ec-849c42ece60d",
+              "from": "2026-11-01 00:00:00.000",
+              "to": "2026-12-01 00:00:00.000",
+              "name": "app_open",
+              "platform": "ios",
+              "country": "PL"
+            }
+          },
+          {
+            "sql": "SELECT toDate32(occurred_at, 'UTC') AS day, count() AS events,\n       uniqExact(user_id) AS active_users\nFROM events WHERE application_id = {application:UUID} AND occurred_at >= {from:DateTime64(3, 'UTC')} AND occurred_at < {to:DateTime64(3, 'UTC')} AND name = {name:String} AND platform = {platform:String} AND country = {country:String}\nGROUP BY day ORDER BY day ASC\n",
+            "bindings": {
+              "application": "81ac800f-5802-440f-b8ec-849c42ece60d",
+              "from": "2026-11-01 00:00:00.000",
+              "to": "2026-12-01 00:00:00.000",
+              "name": "app_open",
+              "platform": "ios",
+              "country": "PL"
+            }
+          },
+          {
+            "sql": "SELECT name, count() AS event_count FROM events WHERE application_id = {application:UUID} AND occurred_at >= {from:DateTime64(3, 'UTC')} AND occurred_at < {to:DateTime64(3, 'UTC')} AND name = {name:String} AND platform = {platform:String} AND country = {country:String}\nGROUP BY name ORDER BY event_count DESC, name ASC LIMIT 10\n",
+            "bindings": {
+              "application": "81ac800f-5802-440f-b8ec-849c42ece60d",
+              "from": "2026-11-01 00:00:00.000",
+              "to": "2026-12-01 00:00:00.000",
+              "name": "app_open",
+              "platform": "ios",
+              "country": "PL"
+            }
+          }
+        ],
+        "result": {
+          "total_events": 19186,
+          "unique_users": 256,
+          "daily": [
+            {
+              "date": "2026-11-01",
+              "events": 1559,
+              "active_users": 184
+            },
+            {
+              "date": "2026-11-02",
+              "events": 1511,
+              "active_users": 183
+            },
+            {
+              "date": "2026-11-03",
+              "events": 1443,
+              "active_users": 175
+            },
+            {
+              "date": "2026-11-04",
+              "events": 1559,
+              "active_users": 197
+            },
+            {
+              "date": "2026-11-05",
+              "events": 1484,
+              "active_users": 183
+            },
+            {
+              "date": "2026-11-06",
+              "events": 1465,
+              "active_users": 176
+            },
+            {
+              "date": "2026-11-07",
+              "events": 1537,
+              "active_users": 198
+            },
+            {
+              "date": "2026-11-08",
+              "events": 1594,
+              "active_users": 190
+            },
+            {
+              "date": "2026-11-09",
+              "events": 1527,
+              "active_users": 180
+            },
+            {
+              "date": "2026-11-10",
+              "events": 1556,
+              "active_users": 188
+            },
+            {
+              "date": "2026-11-11",
+              "events": 201,
+              "active_users": 51
+            },
+            {
+              "date": "2026-11-12",
+              "events": 209,
+              "active_users": 52
+            },
+            {
+              "date": "2026-11-13",
+              "events": 202,
+              "active_users": 63
+            },
+            {
+              "date": "2026-11-14",
+              "events": 202,
+              "active_users": 52
+            },
+            {
+              "date": "2026-11-15",
+              "events": 215,
+              "active_users": 54
+            },
+            {
+              "date": "2026-11-16",
+              "events": 200,
+              "active_users": 48
+            },
+            {
+              "date": "2026-11-17",
+              "events": 182,
+              "active_users": 50
+            },
+            {
+              "date": "2026-11-18",
+              "events": 209,
+              "active_users": 47
+            },
+            {
+              "date": "2026-11-19",
+              "events": 204,
+              "active_users": 63
+            },
+            {
+              "date": "2026-11-20",
+              "events": 185,
+              "active_users": 57
+            },
+            {
+              "date": "2026-11-21",
+              "events": 205,
+              "active_users": 45
+            },
+            {
+              "date": "2026-11-22",
+              "events": 214,
+              "active_users": 60
+            },
+            {
+              "date": "2026-11-23",
+              "events": 179,
+              "active_users": 61
+            },
+            {
+              "date": "2026-11-24",
+              "events": 212,
+              "active_users": 55
+            },
+            {
+              "date": "2026-11-25",
+              "events": 186,
+              "active_users": 44
+            },
+            {
+              "date": "2026-11-26",
+              "events": 188,
+              "active_users": 58
+            },
+            {
+              "date": "2026-11-27",
+              "events": 203,
+              "active_users": 43
+            },
+            {
+              "date": "2026-11-28",
+              "events": 181,
+              "active_users": 45
+            },
+            {
+              "date": "2026-11-29",
+              "events": 203,
+              "active_users": 51
+            },
+            {
+              "date": "2026-11-30",
+              "events": 171,
+              "active_users": 40
+            }
+          ],
+          "top_events": [
+            {
+              "name": "app_open",
+              "count": 19186
+            }
+          ]
+        },
+        "result_sha256": "6b24f4f7b2287753d16ec7b7c0a7f4083a7f278b87efcc9979c7486453879044",
+        "samples": [
+          {
+            "repetition": 1,
+            "queries": [
+              {
+                "server_seconds": 0.020275132,
+                "client_seconds": 0.022131471999998098,
+                "rows_read": 688704,
+                "bytes_read": 39386253
+              },
+              {
+                "server_seconds": 0.021526624,
+                "client_seconds": 0.023401561000000015,
+                "rows_read": 688704,
+                "bytes_read": 39386253
+              },
+              {
+                "server_seconds": 0.015832841,
+                "client_seconds": 0.01767590000000041,
+                "rows_read": 688704,
+                "bytes_read": 25877389
+              }
+            ]
+          },
+          {
+            "repetition": 2,
+            "queries": [
+              {
+                "server_seconds": 0.020674137,
+                "client_seconds": 0.023230958000006297,
+                "rows_read": 688704,
+                "bytes_read": 39386253
+              },
+              {
+                "server_seconds": 0.021439416,
+                "client_seconds": 0.023415411000001995,
+                "rows_read": 688704,
+                "bytes_read": 39386253
+              },
+              {
+                "server_seconds": 0.015836016,
+                "client_seconds": 0.017701753000004317,
+                "rows_read": 688704,
+                "bytes_read": 25877389
+              }
+            ]
+          },
+          {
+            "repetition": 3,
+            "queries": [
+              {
+                "server_seconds": 0.019891974,
+                "client_seconds": 0.021714932999998382,
+                "rows_read": 688704,
+                "bytes_read": 39386253
+              },
+              {
+                "server_seconds": 0.021079662,
+                "client_seconds": 0.023052651000000424,
+                "rows_read": 688704,
+                "bytes_read": 39386253
+              },
+              {
+                "server_seconds": 0.014968352,
+                "client_seconds": 0.01754503099999738,
+                "rows_read": 688704,
+                "bytes_read": 25877389
+              }
+            ]
+          },
+          {
+            "repetition": 4,
+            "queries": [
+              {
+                "server_seconds": 0.020835575,
+                "client_seconds": 0.022634965000001728,
+                "rows_read": 688704,
+                "bytes_read": 39386253
+              },
+              {
+                "server_seconds": 0.021321111,
+                "client_seconds": 0.02316869799999921,
+                "rows_read": 688704,
+                "bytes_read": 39386253
+              },
+              {
+                "server_seconds": 0.015323978,
+                "client_seconds": 0.017221960000000536,
+                "rows_read": 688704,
+                "bytes_read": 25877389
+              }
+            ]
+          },
+          {
+            "repetition": 5,
+            "queries": [
+              {
+                "server_seconds": 0.022135976,
+                "client_seconds": 0.024126679000005424,
+                "rows_read": 688704,
+                "bytes_read": 39386253
+              },
+              {
+                "server_seconds": 0.020353718,
+                "client_seconds": 0.022238086000001545,
+                "rows_read": 688704,
+                "bytes_read": 39386253
+              },
+              {
+                "server_seconds": 0.015434258,
+                "client_seconds": 0.017367175000003954,
+                "rows_read": 688704,
+                "bytes_read": 25877389
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
