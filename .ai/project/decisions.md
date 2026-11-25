@@ -4,7 +4,7 @@
 
 Source: owner-authored [issue #1](https://github.com/szymoniwacz/pulselens/issues/1) and explicit definition-only request.
 
-- D-001: PulseLens is an event analytics application for collecting and analyzing application events. Completion requires a clean-checkout journey, correct analytics, CI and repeatable one-million-event measurements.
+- D-001: PulseLens is an event analytics application for collecting and exploring application events. The current version supports local operation with synthetic data. Completion requires a clean-checkout journey, correct analytics, CI and repeatable one-million-event measurements. Product description clarified on 2026-11-25; technical scope unchanged.
 - D-002: No public hosting, real personal data, queues, user accounts, deduplication or exactly-once promise in the MVP. Preserve unknown-write-outcome warnings and never retry inserts automatically.
 - D-003: This stage creates project context and backlog only. It does not authorize implementation, project execution, merge or a readiness declaration.
 

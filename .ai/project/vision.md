@@ -6,11 +6,11 @@ PulseLens collects application events and provides accurate, filterable analytic
 
 ## Problem
 
-Application operators need accurate event analytics without building their own ingestion and aggregation pipeline.
+Application operators need to understand event activity, unique users and event trends without building their own ingestion and aggregation pipeline.
 
 ## Desired outcome
 
-From a clean checkout, a reviewer can create a demo application, submit synthetic events, explore its activity and reproduce measurements on one million events.
+From a clean checkout, an operator can register an application, submit synthetic events, explore its activity and reproduce measurements on one million events.
 
 ## Non-goals
 
