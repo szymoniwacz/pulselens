@@ -26,7 +26,7 @@ The dashboard uses server-side application selection with no API keys in browser
 
 ## Requirements evidence
 
-Source [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), approved [FR-001–013](../.ai/docs/project-requirements.md), and [integration coverage](integration-coverage.md). The merged #10 product CI at `8ccaf72` ([run 45689869882](https://github.com/szymoniwacz/pulselens/actions/runs/45689869882)) is baseline evidence; final #11 CI is still required.
+Source [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), approved [FR-001–013](../.ai/docs/project-requirements.md), and [integration coverage](integration-coverage.md). The merged #10 product CI at `8ccaf72` ([run 45689869882](https://github.com/szymoniwacz/pulselens/actions/runs/45689869882)) is baseline evidence. Final review-head CI and the clean-checkout TCP walkthrough result are recorded in [PR #22](https://github.com/szymoniwacz/pulselens/pull/22).
 
 | Requirement | Evidence / status |
 |---|---|
@@ -38,16 +38,16 @@ Source [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), approved [
 | FR-006 | #7 / PR #17; bounded UTC filters, typed binding and app isolation |
 | FR-007 | #7; exact counts, UTC zero-day fill, top-ten ordering and boundary fixtures |
 | FR-008 | #8 / PR #20; API parity tests, owner local screenshots of both apps, filters, zero results and keyboard navigation; complete browser-network and manual outage inspection not observed |
-| FR-009 | #9 / PR #18; deterministic bounded generator, million-event CI, local generation confirmed; full local stored preflight pending benchmark |
+| FR-009 | #9 / PR #18; deterministic bounded generator, million-event CI, local generation and stored per-application exact counts, dimensions and generator markers confirmed by benchmark preflight |
 | FR-010 | #3/#5; clean service setup, schemas, explicit deadlines and real outage tests; local setup and dashboard startup observed |
 | FR-011 | #10 / PR #21; end-to-end Rails request stack with real stores, coverage matrix and green CI; no latency gates |
-| FR-012 | README and this walkthrough cover required topics; clean-checkout HTTP demo replay and final validation evidence pending |
-| FR-013 | Reproducible benchmark procedure and runner prepared; raw measured query results and independent repeat pending |
+| FR-012 | README and this walkthrough cover required topics; separate benchmark workflow includes the clean-checkout HTTP demo replay; see PR #22 for actual check status |
+| FR-013 | [Local and independent CI measurements](query-benchmark.md): identical aggregate digests, all six queries and 30 samples per environment, actual versions/settings/read statistics and first/subsequent times |
 
 ## Source MVP completion criteria
 
-- Clean setup, operator key creation, generation, correct dashboard: owner performed local setup and generation on the #8 review branch. CI exercises clean service setup and the complete operator-to-ingestion-to-analytics/dashboard request path. Final clean-checkout HTTP curl walkthrough is still to be recorded; request-stack integration is not a substitute for actual TCP/browser observation.
+- Clean setup, operator key creation, generation, correct dashboard: owner performed local setup and generation on the #8 review branch. CI exercises clean service setup and the complete operator-to-ingestion-to-analytics/dashboard request path. The separate benchmark workflow runs an actual loopback Puma HTTP demonstration with a separate app and checks both generated dashboards after independent generation. This is an automated HTTP equivalent of the README examples, not browser rendering automation; see PR #22 for the terminal result.
 - Tests pass in CI: baseline #10 green; final review head must pass relevant CI, including separate benchmark verification.
-- Reproducible documented performance: local and CI generator measurements exist; query results must be collected and compared before declaring completion.
+- Reproducible documented performance: local and CI generator measurements and matching query result digests are recorded in the benchmark document, with all measured timings/read statistics.
 
-Keep this assessment honest: no public deployment, no personal data, no queues, no arbitrary performance guarantees or PostgreSQL comparison. Do not mark #11 complete until actual benchmark reports and remaining walkthrough evidence are recorded.
+Keep this assessment honest: no public deployment, no personal data, no queues, no arbitrary performance guarantees or PostgreSQL comparison. Final completion requires green review-head checks and owner review/merge.

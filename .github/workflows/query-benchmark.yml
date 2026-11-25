@@ -5,6 +5,7 @@ on:
     paths:
       - scripts/benchmark-queries.rb
       - scripts/query_benchmark.rb
+      - scripts/verify-http-demo.rb
       - .github/workflows/query-benchmark.yml
       - app/services/event_analytics.rb
       - app/services/analytics_filters.rb
@@ -41,6 +42,8 @@ jobs:
         shell: bash
         run: |
           BENCHMARK_GENERATE=1 bin/rails runner scripts/benchmark-queries.rb | tee query-benchmark.json
+      - name: Verify actual HTTP demo and generated dashboards
+        run: bundle exec ruby scripts/verify-http-demo.rb query-benchmark.json
       - uses: actions/upload-artifact@v4
         with:
           name: query-benchmark
