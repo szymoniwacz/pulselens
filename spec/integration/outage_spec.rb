@@ -34,6 +34,15 @@ RSpec.describe "Real dependency outage", :outage, type: :request do
   end
 
   if ENV["EXPECT_UNAVAILABLE"] == "clickhouse"
+    it "returns a generic analytics 503 with valid authentication when ClickHouse is stopped" do
+      _, key = Application.issue_key!(name: "Analytics outage")
+      get "/api/v1/analytics", params: { from: "2026-11-01T00:00:00Z", to: "2026-11-02T00:00:00Z" },
+          headers: { "Authorization" => "Bearer #{key}" }
+      expect(response).to have_http_status(:service_unavailable)
+      expect(response.parsed_body).to eq("error" => "Service unavailable")
+      expect(response.headers["Cache-Control"]).to include("no-store")
+    end
+
     it "fails the event client safely while ClickHouse is stopped" do
       expect { ClickhouseClient.new.query("SELECT 1") }.to raise_error(
         ClickhouseClient::Unavailable, "ClickHouse unavailable or operation timed out"

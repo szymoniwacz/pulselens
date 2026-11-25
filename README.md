@@ -2,7 +2,7 @@
 
 PulseLens is an event analytics application built with Ruby on Rails and ClickHouse. It collects application events through an authenticated HTTP API and provides filtered analytics through a web dashboard.
 
-**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. HTTP ingestion, analytics, dashboard, generator and full benchmarks remain planned.
+**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. Authenticated analytics are available. HTTP ingestion, dashboard, generator and full benchmarks remain planned.
 
 ## Architecture and versions
 
@@ -10,11 +10,11 @@ PulseLens is an event analytics application built with Ruby on Rails and ClickHo
 |---|---|---|
 | Ruby / Rails | 3.4.13 / 8.1.4.1 | Synchronous API, validation and a future server-rendered dashboard |
 | PostgreSQL | 17.12 (Debian Bookworm image) | Application metadata and API key digests |
-| ClickHouse | 26.8.46.6 | Event storage and future analytical aggregations |
+| ClickHouse | 26.8.46.6 | Event storage and exact analytical aggregations |
 | Docker Compose | v2 with `up --wait` | Local dependencies and persistent database volumes |
 | RSpec Rails | 8.1.0 | Request, service and real-database integration tests |
 
-Readiness still runs `SELECT 1` against each store. The internal event client and schema now support synchronous inserts and typed queries; PostgreSQL stores application metadata and key digests. HTTP ingestion and shared analytics queries belong to later goals. There are no queues, workers or cross-database transactions.
+Readiness still runs `SELECT 1` against each store. The internal event client and schema now support synchronous inserts and typed queries; PostgreSQL stores application metadata and key digests. The shared analytics service computes exact aggregates in ClickHouse. HTTP ingestion belongs to a later goal. There are no queues, workers or cross-database transactions.
 
 Versions and dependency rationale are recorded in [project decisions](.ai/project/decisions.md). Gem dependencies are locked in `Gemfile.lock`; runtime and service versions are fixed in `.ruby-version` and `compose.yaml`. The ClickHouse storage boundary uses Ruby's existing Net::HTTP and JSON libraries, without adding a gem.
 
@@ -50,7 +50,25 @@ APPLICATION_NAME="Demo app" RAILS_ENV=development bin/rails applications:create
 
 The command prints the application UUID and a cryptographically random 256-bit key (64 lowercase hexadecimal characters) once, only after a successful database insert. Save the key privately; PostgreSQL stores only its SHA-256 digest with a unique index. There is no command to recover, rotate or list plaintext keys. Do not paste the key into logs, screenshots, URLs or Git.
 
-Future API endpoints inherit `Api::BaseController`, which accepts the key only in the `Authorization: Bearer <key>` request header. Missing, malformed and unknown credentials receive the same 401 response; a PostgreSQL lookup failure returns a generic 503. Application identity comes from the authenticated database record, never a client-supplied application ID. The health endpoints remain unauthenticated. No public ingestion or analytics route is added by this goal; request specs exercise the authentication boundary through a test-only route. This remains a loopback-only demo, not a production authentication service.
+API endpoints inherit `Api::BaseController`, which accepts the key only in the `Authorization: Bearer <key>` request header. Missing, malformed and unknown credentials receive the same 401 response; a PostgreSQL lookup failure returns a generic 503. Application identity comes from the authenticated database record, never a client-supplied application ID. The health endpoints remain unauthenticated. The analytics route is available; HTTP ingestion is not implemented yet. This remains a loopback-only demo, not a production authentication service.
+
+## Query analytics
+
+After creating an application, start `bin/dev` and supply the saved API key privately (do not include it in a URL or commit it). For example, in a shell with `API_KEY` already set:
+
+```bash
+curl --get --fail http://127.0.0.1:3000/api/v1/analytics \
+  --header "Authorization: Bearer $API_KEY" \
+  --data-urlencode 'from=2026-11-01T00:00:00Z' \
+  --data-urlencode 'to=2026-11-04T00:00:00Z' \
+  --data-urlencode 'platform=ios'
+```
+
+The response contains integer `total_events`, `unique_users`, `daily` (objects with `date`, `events`, `active_users`) and `top_events` (objects with `name`, `count`). Before generating data, the counters and daily buckets are zero and the top list is empty. The generator is planned in #9. The integration specs insert synthetic fixtures directly into ClickHouse.
+
+`from` and `to` are required ISO-8601 timestamps with `Z` or an explicit numeric offset; UTC years 1900–2299, seconds and optional fractional seconds (up to nine digits). The range must be positive and no longer than 90 elapsed days. Both bounds are normalized to UTC and rounded up to the next stored millisecond when needed, preserving inclusive-from/exclusive-to semantics. Daily buckets use UTC dates intersecting the original range, including partial days but excluding an exact-midnight end date. Optional filters: nonblank `name` up to 128 UTF-8 bytes, `platform` (web/ios/android/unknown), and uppercase ISO 3166-1 alpha-2 `country` or `unknown`. Filters combine with AND. Empty or invalid filter values return 422; missing/invalid credentials return 401; unavailable storage returns 503. Unknown query parameters cannot override the authenticated application identity.
+
+`EventAnalytics` is shared with the future dashboard and accepts a trusted server-selected application UUID and validated `AnalyticsFilters`. It runs three parameterized ClickHouse queries for exact range counts (`uniqExact`), daily counts and top ten ordered by count DESC/name ASC. Rails only converts counts to integers and fills missing dates. Each query has the existing 15-second client deadline (up to 45 seconds across three sequential queries, plus authentication and Rails overhead). No common snapshot across the three queries is promised while writes are concurrent. This local demo does not impose a latency threshold or offer production rate limiting.
 
 ## Liveness and readiness
 
