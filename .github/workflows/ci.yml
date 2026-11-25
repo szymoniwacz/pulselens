@@ -34,3 +34,48 @@ jobs:
       - name: Workflow leak check
         shell: bash
         run: bash scripts/check-workflow-leak.sh
+
+  product:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RAILS_ENV: test
+      RUN_SERVICE_SPECS: "1"
+      POSTGRES_USER: pulselens
+      POSTGRES_PASSWORD: ci-only-postgres
+      CLICKHOUSE_USER: pulselens
+      CLICKHOUSE_PASSWORD: ci-only-clickhouse
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Verify clean-checkout setup with real services
+        run: |
+          # CI credentials are exported above; the wrapper must preserve them.
+          touch .env
+          env -u RAILS_ENV bin/setup
+      - name: Specs, lint and autoload check
+        run: bin/check
+      - name: Build assets without deployment credentials
+        env:
+          RAILS_ENV: production
+          SECRET_KEY_BASE_DUMMY: "1"
+        run: bin/rails assets:precompile
+      - name: Verify ClickHouse outage leaves process liveness healthy
+        run: |
+          docker compose stop clickhouse
+          EXPECT_UNAVAILABLE=clickhouse bundle exec rspec spec/integration/outage_spec.rb
+          docker compose up -d --wait clickhouse
+      - name: Verify PostgreSQL outage leaves process liveness healthy
+        run: |
+          docker compose stop postgres
+          EXPECT_UNAVAILABLE=postgresql bundle exec rspec spec/integration/outage_spec.rb
+      - name: Dependency diagnostics
+        if: failure()
+        run: docker compose logs --tail 50
+      - name: Stop services without deleting volumes
+        if: always()
+        run: docker compose down

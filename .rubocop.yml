@@ -1,0 +1,10 @@
+inherit_gem:
+  rubocop-rails-omakase: rubocop.yml
+
+AllCops:
+  CacheRootDirectory: tmp/rubocop
+  TargetRubyVersion: 3.4
+  Exclude:
+    - vendor/**/*
+    - tmp/**/*
+    - .ai-template/**/*
