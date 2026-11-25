@@ -2,19 +2,19 @@
 
 PulseLens is an event analytics application built with Ruby on Rails and ClickHouse. It collects application events through an authenticated HTTP API and provides filtered analytics through a web dashboard.
 
-**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application/key creation, HTTP ingestion, analytics, dashboard, generator and full benchmarks remain planned.
+**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. HTTP ingestion, analytics, dashboard, generator and full benchmarks remain planned.
 
 ## Architecture and versions
 
 | Component | Pinned version | Responsibility |
 |---|---|---|
 | Ruby / Rails | 3.4.13 / 8.1.4.1 | Synchronous API, validation and a future server-rendered dashboard |
-| PostgreSQL | 17.12 (Debian Bookworm image) | Future application metadata and API key digests |
-| ClickHouse | 26.8.46.6 | Future event storage and analytical aggregations |
+| PostgreSQL | 17.12 (Debian Bookworm image) | Application metadata and API key digests |
+| ClickHouse | 26.8.46.6 | Event storage and future analytical aggregations |
 | Docker Compose | v2 with `up --wait` | Local dependencies and persistent database volumes |
 | RSpec Rails | 8.1.0 | Request, service and real-database integration tests |
 
-Readiness still runs `SELECT 1` against each store. The internal event client and schema now support synchronous inserts and typed queries; application authentication, HTTP endpoints and shared analytics queries belong to later goals. There are no queues, workers or cross-database transactions.
+Readiness still runs `SELECT 1` against each store. The internal event client and schema now support synchronous inserts and typed queries; PostgreSQL stores application metadata and key digests. HTTP ingestion and shared analytics queries belong to later goals. There are no queues, workers or cross-database transactions.
 
 Versions and dependency rationale are recorded in [project decisions](.ai/project/decisions.md). Gem dependencies are locked in `Gemfile.lock`; runtime and service versions are fixed in `.ruby-version` and `compose.yaml`. The ClickHouse storage boundary uses Ruby's existing Net::HTTP and JSON libraries, without adding a gem.
 
@@ -36,6 +36,21 @@ bin/dev
 ```
 
 `bin/setup` installs the locked gems into `vendor/bundle`, starts the Compose databases, prepares the development/test PostgreSQL databases and applies the versioned ClickHouse schemas. It does not reset an existing database or delete volumes. If `.env` is absent it creates the example and stops for configuration. `bin/dev` starts Rails on **127.0.0.1:3000**. Database ports are also published on loopback only (PostgreSQL 5432, ClickHouse HTTP 8123); no ClickHouse native port is published. If a port is occupied, stop the conflicting local service or adjust the documented configuration before starting.
+
+## Create a demo application
+
+After `bin/setup`, export your local configuration and run the operator command:
+
+```bash
+set -a
+source .env
+set +a
+APPLICATION_NAME="Demo app" RAILS_ENV=development bin/rails applications:create
+```
+
+The command prints the application UUID and a cryptographically random 256-bit key (64 lowercase hexadecimal characters) once, only after a successful database insert. Save the key privately; PostgreSQL stores only its SHA-256 digest with a unique index. There is no command to recover, rotate or list plaintext keys. Do not paste the key into logs, screenshots, URLs or Git.
+
+Future API endpoints inherit `Api::BaseController`, which accepts the key only in the `Authorization: Bearer <key>` request header. Missing, malformed and unknown credentials receive the same 401 response; a PostgreSQL lookup failure returns a generic 503. Application identity comes from the authenticated database record, never a client-supplied application ID. The health endpoints remain unauthenticated. No public ingestion or analytics route is added by this goal; request specs exercise the authentication boundary through a test-only route. This remains a loopback-only demo, not a production authentication service.
 
 ## Liveness and readiness
 

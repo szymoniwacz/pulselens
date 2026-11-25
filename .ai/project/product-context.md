@@ -10,7 +10,7 @@
 
 ## Repository
 
-- Current state: Rails scaffold with /up and /ready, local Compose dependencies, RSpec and service-backed product CI. Versioned event schema and bounded internal ClickHouse client are implemented on the issue #5 branch; no domain applications/auth, HTTP ingestion, analytics or dashboard yet.
+- Current state: Rails scaffold with /up and /ready, local Compose dependencies, RSpec and service-backed product CI. Versioned event schema and bounded internal ClickHouse client are integrated. Application persistence, operator key creation and reusable Bearer authentication are implemented by #4; HTTP ingestion, analytics and dashboard remain planned.
 - Approved stack: Rails API and server-rendered dashboard, PostgreSQL application configuration/authentication, ClickHouse event analytics and RSpec; Docker Compose is confirmed (D-004), as is GitHub Actions CI (D-007).
 - All A-01–A-09 policies are approved; the owner delegated versions, ClickHouse library, timeout values and final sorting choice to the relevant future tasks; see [requirements](../docs/project-requirements.md).
 - Existing adapter checks: `bash tests/test-adapter.sh`, `bash scripts/check-workflow-leak.sh`.
@@ -27,4 +27,4 @@ A-01–A-09 are approved (D-004–D-014): Rails/PG/ClickHouse/RSpec, input byte 
 
 ## Current authorization
 
-PR #12 merged to main at 1081c21; #2 is complete and dependency preflight for scaffold #3 passed. PR #13 merged to main at f7de086; #3 is closed. Issue #5 is authorized for implementation; validation and review remain required. [Roadmap](roadmap.md).
+PR #12 merged to main at 1081c21; #2 is complete and dependency preflight for scaffold #3 passed. PR #13 merged to main at f7de086; #3 is closed. PR #15 merged at 1ce3698; #5 is closed. Issue #4 is authorized for implementation and requires human security review before merge. [Roadmap](roadmap.md).
