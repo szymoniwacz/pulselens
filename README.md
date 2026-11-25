@@ -2,7 +2,7 @@
 
 PulseLens is a small Ruby on Rails event analytics demo for learning ClickHouse and discussing backend design during recruitment. It is for a developer running a local synthetic-data demo and a reviewer exploring the architecture, tests and measurements.
 
-**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. Authenticated analytics are available. The synthetic event generator is available. HTTP ingestion, dashboard and full benchmarks remain planned.
+**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. Authenticated synchronous HTTP ingestion, exact analytics and the synthetic event generator are available. Dashboard and full benchmarks remain planned.
 
 ## Architecture and versions
 
@@ -14,7 +14,7 @@ PulseLens is a small Ruby on Rails event analytics demo for learning ClickHouse 
 | Docker Compose | v2 with `up --wait` | Local dependencies and persistent database volumes |
 | RSpec Rails | 8.1.0 | Request, service and real-database integration tests |
 
-Readiness still runs `SELECT 1` against each store. The internal event client and schema now support synchronous inserts and typed queries; PostgreSQL stores application metadata and key digests. The shared analytics service computes exact aggregates in ClickHouse. HTTP ingestion belongs to a later goal. There are no queues, workers or cross-database transactions.
+Readiness still runs `SELECT 1` against each store. The internal event client and schema now support synchronous inserts and typed queries; PostgreSQL stores application metadata and key digests. The shared analytics service computes exact aggregates in ClickHouse. HTTP ingestion validates the complete batch before one synchronous insert. There are no queues, workers or cross-database transactions.
 
 Versions and dependency rationale are recorded in [project decisions](.ai/project/decisions.md). Gem dependencies are locked in `Gemfile.lock`; runtime and service versions are fixed in `.ruby-version` and `compose.yaml`. The ClickHouse storage boundary uses Ruby's existing Net::HTTP and JSON libraries, without adding a gem.
 
@@ -50,7 +50,39 @@ APPLICATION_NAME="Demo app" RAILS_ENV=development bin/rails applications:create
 
 The command prints the application UUID and a cryptographically random 256-bit key (64 lowercase hexadecimal characters) once, only after a successful database insert. Save the key privately; PostgreSQL stores only its SHA-256 digest with a unique index. There is no command to recover, rotate or list plaintext keys. Do not paste the key into logs, screenshots, URLs or Git.
 
-API endpoints inherit `Api::BaseController`, which accepts the key only in the `Authorization: Bearer <key>` request header. Missing, malformed and unknown credentials receive the same 401 response; a PostgreSQL lookup failure returns a generic 503. Application identity comes from the authenticated database record, never a client-supplied application ID. The health endpoints remain unauthenticated. The analytics route is available; HTTP ingestion is not implemented yet. This remains a loopback-only demo, not a production authentication service.
+API endpoints inherit `Api::BaseController`, which accepts the key only in the `Authorization: Bearer <key>` request header. Missing, malformed and unknown credentials receive the same 401 response; a PostgreSQL lookup failure returns a generic 503. Application identity comes from the authenticated database record, never a client-supplied application ID. The health endpoints remain unauthenticated. The ingestion and analytics routes are available. This remains a loopback-only demo, not a production authentication service.
+
+## Ingest events
+
+After creating a demo application and starting `bin/dev`, set `API_KEY` privately to its saved key. Submit a JSON object with an `events` array (synthetic data only):
+
+```bash
+curl --fail-with-body http://127.0.0.1:3000/api/v1/events \
+  --header "Authorization: Bearer $API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data-binary @- <<'JSON'
+{"events":[{"event_id":"00000000-0000-4000-8000-000000000001","name":"app_open","user_id":"synthetic-user-1","occurred_at":"2026-11-02T00:30:00+01:00","platform":"ios","country":"PL","properties":{"screen":"home"}}]}
+JSON
+```
+
+A confirmed write returns HTTP 201 and `{"accepted":1}`. Use the same API key with the analytics example below to query the event (its UTC time is 2026-11-01 23:30). The example uses a fixed UUID; repeated submissions append duplicate events.
+
+| Input | Validation |
+|---|---|
+| Request body | Maximum 2 MiB (2,097,152 bytes), including JSON whitespace |
+| `events` | Array of 1–1000 objects; count and body limits both apply |
+| `event_id` | UUID string, normalized to lowercase |
+| `name` / `user_id` | Required nonblank strings, at most 128 / 256 UTF-8 bytes respectively |
+| `occurred_at` | Timezone-bearing ISO-8601 timestamp, UTC years 1900–2299, seconds and optional 1–9 fractional digits; normalized to UTC and truncated to milliseconds |
+| `platform` / `country` | `web`, `ios`, `android`, `unknown` / uppercase ISO 3166-1 alpha-2 or `unknown`; missing values default to `unknown` |
+| `properties` | JSON object, at most 16 KiB (16,384 bytes) after compact JSON serialization; missing defaults to `{}` |
+| `application_id` / `received_at` | Server assigned; reject either supplied at envelope or event level, including null |
+
+Explicit nulls and incorrect types are invalid, including for optional fields. Unrecognized fields are ignored and never forwarded. The first invalid event produces HTTP 422, e.g. `{"error":"Invalid event batch","field":"name","index":1}`; indexes are zero-based, with `null` for envelope errors. Malformed JSON returns 400, missing/invalid Bearer credentials 401, oversized body 413, and unavailable storage 503. The transport size limit takes precedence over authentication; for within-limit requests authentication precedes JSON parsing. A server-level Puma 413 need not have a JSON body.
+
+Puma's `http_content_length_limit` bounds request buffering (including chunked transfers). Early Rack middleware also reads at most 2 MiB + 1 byte before Rails parsing, for direct Rack callers and unknown or inaccurate length. It captures the raw body for the current sole POST endpoint and keeps it out of Rails' implicit parameter parser/logs, including malformed JSON. Adding another POST endpoint requires revisiting this middleware. The app does not log the Bearer key or raw request body; do not put keys in URLs or enable client-side verbose tracing. Real transport and application-level tests cover these boundaries.
+
+Rails validates every event before calling the existing synchronous ClickHouse client exactly once. HTTP 201 is returned only after confirmed insertion. Validation prevents invalid-batch writes, not transactional guarantees during storage failures. A timeout or lost response can leave the last write outcome unknown; the API returns 503 without retrying. Repeating requests can increase counts even with the same event UUID.
 
 ## Query analytics
 
@@ -157,7 +189,7 @@ The events table uses MergeTree, monthly UTC partitions, UUID application/event 
 
 Both keys returned the same counts for each shape. The date-first key is preferable for this workload; other distributions and wider ranges may behave differently. Granule selection is not a latency measurement. The full benchmark remains in #11.
 
-The internal `ClickhouseClient#insert_events` takes normalized symbol-keyed event hashes (including UTC-convertible Time values and a properties object). It sends one synchronous JSONEachRow insert. `#query(sql, bindings: {})` accepts trusted developer-authored SQL with typed placeholders such as `{application:UUID}` and passes escaped values as HTTP parameters, never SQL interpolation. Neither method is a public API yet. The client uses no ambient proxy or automatic retry, buffers the server response, rejects invalid or incomplete results and returns generic errors without raw server messages or causes. Whole-request deadlines are 15 seconds for queries/DDL and 30 seconds for inserts, connection deadline 2 seconds. Server execution limits are best-effort; a timed-out write may have committed. Repeating it can append duplicates.
+The internal `ClickhouseClient#insert_events` takes normalized symbol-keyed event hashes (including UTC-convertible Time values and a properties object). It sends one synchronous JSONEachRow insert. `#query(sql, bindings: {})` accepts trusted developer-authored SQL with typed placeholders such as `{application:UUID}` and passes escaped values as HTTP parameters, never SQL interpolation. Both methods remain internal implementation boundaries behind the authenticated HTTP API. The client uses no ambient proxy or automatic retry, buffers the server response, rejects invalid or incomplete results and returns generic errors without raw server messages or causes. Whole-request deadlines are 15 seconds for queries/DDL and 30 seconds for inserts, connection deadline 2 seconds. Server execution limits are best-effort; a timed-out write may have committed. Repeating it can append duplicates.
 
 Run `RUN_SERVICE_SPECS=1 bin/check` after setup. Storage integration tests use unique synthetic application IDs in the test database, and sorting experiments remove only their own unique test tables. Do not point test configuration at shared/production data.
 
@@ -185,7 +217,7 @@ The verification runner creates two new isolated test applications, invokes the 
 RAILS_ENV=test bin/rails runner scripts/verify-generator.rb
 ```
 
-On Linux, prefix with `/usr/bin/time -v` to record wall time and peak generator-process RSS (not ClickHouse server memory); on macOS use `/usr/bin/time -l`. The separate Generator verification GitHub Actions workflow runs this against real services for relevant pull requests and supports manual dispatch after merge. No latency target is asserted. This verifies the direct insert path, **not HTTP ingestion throughput**. A separate HTTP ingestion example remains pending #6; no unimplemented endpoint is advertised.
+On Linux, prefix with `/usr/bin/time -v` to record wall time and peak generator-process RSS (not ClickHouse server memory); on macOS use `/usr/bin/time -l`. The separate Generator verification GitHub Actions workflow runs this against real services for relevant pull requests and supports manual dispatch after merge. No latency target is asserted. This verifies the direct insert path, **not HTTP ingestion throughput**. Use the separate [HTTP ingestion example](#ingest-events) to exercise the authenticated HTTP path; the direct insertion measurements below do not cover it.
 
 ### Observed million-event verification
 
@@ -206,7 +238,7 @@ The SQL verification confirmed all expected counts and UTC bounds. This is a sin
 
 ## Planned MVP and limitations
 
-The remaining full MVP work includes HTTP ingestion, the dashboard, cross-system coverage and reproducible query measurements. See [requirements](.ai/docs/project-requirements.md) and the [roadmap](.ai/project/roadmap.md).
+The remaining full MVP work includes the dashboard, cross-system coverage and reproducible query measurements. See [requirements](.ai/docs/project-requirements.md) and the [roadmap](.ai/project/roadmap.md).
 
 - Local demo only: no public hosting, user accounts, roles or dashboard login.
 - No real personal data, provider integrations, Kafka, queues or separate frontend.
