@@ -6,4 +6,9 @@ if [[ -f .env ]]; then
   source .env
   set +a
 fi
+# Propshaft prefers a precompiled manifest even in development. Clear only
+# generated assets so local changes are served from the current source files.
+if [[ -f public/assets/.manifest.json ]]; then
+  RAILS_ENV=development bin/rails assets:clobber
+fi
 exec bin/rails server --binding 127.0.0.1
