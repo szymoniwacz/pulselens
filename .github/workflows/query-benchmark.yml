@@ -7,13 +7,16 @@ on:
       - scripts/query_benchmark.rb
       - scripts/verify-http-demo.rb
       - .github/workflows/query-benchmark.yml
-      - app/services/event_analytics.rb
-      - app/services/analytics_filters.rb
-      - app/services/clickhouse_client.rb
-      - app/services/synthetic_event_generator.rb
+      - app/**
+      - config/**
+      - db/**
+      - lib/**
+      - bin/**
       - scripts/verify-generator.rb
-      - db/clickhouse/**
       - compose.yaml
+      - .env.example
+      - .ruby-version
+      - Gemfile
       - Gemfile.lock
   workflow_dispatch:
 

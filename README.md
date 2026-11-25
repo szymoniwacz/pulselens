@@ -256,7 +256,7 @@ On Linux, prefix with `/usr/bin/time -v` to record wall time and peak generator-
 | Rails runner wall time, including verification | 12.38 s |
 | Peak runner-process RSS | 144,120 KiB (140.74 MiB) |
 
-The SQL verification confirmed all expected counts and UTC bounds. This is a single CI observation, not a local workstation run, a memory-scaling experiment, a server-memory measurement or an HTTP/analytics benchmark. A fresh application mapping changes event UUIDs; repeat an identical mapping and seed to reproduce logical events, but remember that inserts append duplicates. Query benchmarking remains in #11.
+The SQL verification confirmed all expected counts and UTC bounds. This is a single CI observation, not a local workstation run, a memory-scaling experiment, a server-memory measurement or an HTTP/analytics benchmark. A fresh application mapping changes event UUIDs; repeat an identical mapping and seed to reproduce logical events, but remember that inserts append duplicates. For the measured analytics queries, see the [local and CI query benchmark results](docs/query-benchmark.md#query-measurement-evidence).
 
 ## MVP limitations
 

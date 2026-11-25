@@ -64,7 +64,6 @@ The following times are milliseconds: first observed sample / median of samples 
 
 | Environment | Shape | Query | Server ms (first / median) | Client ms (first / median) | Rows read | Bytes read |
 |---|---|---|---:|---:|---:|---:|
-
 | Local | date_only | Totals | 23.49 / 28.08 | 27.57 / 32.70 | 680,512 | 29,680,451 |
 | Local | date_only | Daily | 31.66 / 36.93 | 37.24 / 41.91 | 680,512 | 29,680,451 |
 | Local | date_only | Top names | 20.95 / 22.24 | 26.39 / 27.09 | 680,512 | 24,208,307 |
