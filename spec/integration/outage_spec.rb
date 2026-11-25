@@ -1,4 +1,5 @@
 require "rails_helper"
+require "securerandom"
 
 RSpec.describe "Real dependency outage", :outage, type: :request do
   it "keeps liveness healthy while reporting the stopped dependency as unavailable" do
@@ -13,23 +14,34 @@ RSpec.describe "Real dependency outage", :outage, type: :request do
     expect(response.parsed_body["checks"][other]).to eq("ok")
   end
 
+  def outage_event
+    { event_id: SecureRandom.uuid, name: "open", user_id: "synthetic-user", occurred_at: "2026-11-01T00:00:00Z" }
+  end
+
+  def assert_api_unavailable
+    expect(response).to have_http_status(:service_unavailable)
+    expect(response.parsed_body).to eq("error" => "Service unavailable")
+    expect(response.headers["Cache-Control"]).to include("no-store")
+  end
+
+  def assert_dashboard_unavailable
+    expect(response).to have_http_status(:service_unavailable)
+    expect(response.headers["Cache-Control"]).to include("no-store")
+    assert_select "[role=alert]", text: /Analytics unavailable/
+    assert_select "#total-events", count: 0
+    assert_select "#unique-users", count: 0
+  end
+
   if ENV["EXPECT_UNAVAILABLE"] == "postgresql"
-    it "cannot authenticate when PostgreSQL is stopped" do
-      stub_const("OutageAuthenticationProbeController", Class.new(Api::BaseController) do
-        def show
-          render json: { application_id: current_application.id }
-        end
-      end)
-      Rails.application.routes.draw do
-        get "/__outage_auth_probe", to: "outage_authentication_probe#show"
-      end
+    it "fails real ingestion, analytics and dashboard requests when PostgreSQL is stopped" do
       key = ApplicationApiKey.generate
-      get "/__outage_auth_probe", headers: { "Authorization" => "Bearer #{key}" }
-      expect(response).to have_http_status(:service_unavailable)
-      expect(response.parsed_body).to eq("error" => "Service unavailable")
-      expect(response.headers["Cache-Control"]).to include("no-store")
-    ensure
-      Rails.application.reload_routes!
+      headers = { "Authorization" => "Bearer #{key}", "Content-Type" => "application/json" }
+      post "/api/v1/events", params: JSON.generate(events: [ outage_event ]), headers: headers
+      assert_api_unavailable
+      get "/api/v1/analytics", params: { from: "2026-11-01T00:00:00Z", to: "2026-11-02T00:00:00Z" }, headers: headers
+      assert_api_unavailable
+      get "/"
+      assert_dashboard_unavailable
     end
   end
 
@@ -41,6 +53,16 @@ RSpec.describe "Real dependency outage", :outage, type: :request do
       expect(response).to have_http_status(:service_unavailable)
       expect(response.parsed_body).to eq("error" => "Service unavailable")
       expect(response.headers["Cache-Control"]).to include("no-store")
+    end
+
+    it "returns 503 for valid HTTP ingestion and selected dashboard when ClickHouse is stopped" do
+      application, key = Application.issue_key!(name: "Journey outage #{SecureRandom.uuid}")
+      post "/api/v1/events", params: JSON.generate(events: [ outage_event ]),
+          headers: { "Authorization" => "Bearer #{key}", "Content-Type" => "application/json" }
+      assert_api_unavailable
+      get "/", params: { application_id: application.id, from: "2026-11-01", to: "2026-11-02" }
+      expect(response.body.include?(key) || response.body.include?(application.api_key_digest)).to be(false)
+      assert_dashboard_unavailable
     end
 
     it "fails the event client safely while ClickHouse is stopped" do

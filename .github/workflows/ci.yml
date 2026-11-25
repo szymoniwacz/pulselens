@@ -75,7 +75,9 @@ jobs:
           EXPECT_UNAVAILABLE=postgresql bundle exec rspec spec/integration/outage_spec.rb
       - name: Dependency diagnostics
         if: failure()
-        run: docker compose logs --tail 50
+        # Service status is sufficient for CI triage without dumping queries,
+        # connection strings, credentials or arbitrary database log contents.
+        run: docker compose ps --all
       - name: Stop services without deleting volumes
         if: always()
         run: docker compose down

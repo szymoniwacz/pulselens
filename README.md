@@ -139,6 +139,14 @@ After `bin/setup`, include the real PostgreSQL/ClickHouse integration specs:
 RUN_SERVICE_SPECS=1 bin/check
 ```
 
+The [cross-system coverage matrix](docs/integration-coverage.md) identifies which feature tests and full-journey checks cover each contract. The journey invokes the operator command, submits HTTP requests through Rails and compares actual ClickHouse rows and both analytics surfaces to independently specified expected values. To run only this journey after setup and exporting `.env`:
+
+```bash
+RAILS_ENV=test RUN_SERVICE_SPECS=1 bundle exec rspec spec/integration/cross_system_spec.rb
+```
+
+The normal suite uses small fixtures with fresh application UUIDs in the test databases; it does not delete existing data or run the million-event benchmark. Do not point test configuration at shared databases. The outage commands below temporarily stop the local Compose services, including any running demo, without deleting volumes.
+
 `bin/check` runs RuboCop (Rails Omakase rules), RSpec and `RAILS_ENV=test bin/rails zeitwerk:check`. Individual commands, after exporting `.env` into your shell, are:
 
 ```bash
