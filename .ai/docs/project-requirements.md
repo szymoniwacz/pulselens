@@ -1,6 +1,6 @@
 # Project Requirements
 
-Revision: definition-5, 2026-11-24. Source: [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), no comments at initial definition time. Owner confirmations: conversation dated 2026-11-24, recorded as D-004–D-014 in [decisions](../project/decisions.md). Backlog: [roadmap](../project/roadmap.md).
+Revision: scaffold-1, 2026-11-24. Source: [issue #1](https://github.com/szymoniwacz/pulselens/issues/1), no comments at initial definition time. Owner confirmations: conversation dated 2026-11-24, recorded as D-004–D-014 in [decisions](../project/decisions.md). Backlog: [roadmap](../project/roadmap.md).
 
 ## Project summary
 
@@ -100,7 +100,7 @@ ClickHouse inserts have no automatic retries, including client-level retries. A 
 
 ## Active stack profile
 
-Selected active profile: `.ai/stack-profiles/ruby-rails.md`, following approval of Rails and RSpec (D-011). Its example commands are placeholders. Current real checks cover the workflow adapter only: `bash tests/test-adapter.sh` and `bash scripts/check-workflow-leak.sh`. Real application commands and product CI are deferred to the scaffold-producing goal under the greenfield bootstrap exception.
+Selected active profile: `.ai/stack-profiles/ruby-rails.md`, following approval of Rails and RSpec (D-011). Its example commands are placeholders. Scaffold #3 now provides real commands in README and bin/check: bin/setup, bin/dev, RuboCop, RSpec, Zeitwerk autoload checking and Propshaft asset compilation. There is no static typechecker or JavaScript build. CI retains adapter checks and adds real Compose dependencies with healthy/outage verification. Versions and probe limits are recorded in D-015–D-018.
 
 ## Security and privacy requirements
 
@@ -126,10 +126,10 @@ Approval source: owner's conversation reply dated 2026-11-24, recorded in D-004�
 
 No missing information blocks this documentation update. All A-01–A-09 policy choices are approved. The remaining items are bounded delegated implementation details or repository preparation, not new owner-decision blockers.
 
-- No unapproved A-01–A-09 choice remains. README/AGENTS customization and the readiness gate are prepared in PR #12 for #2; owner review/merge and a fresh target-branch dependency preflight still precede product execution.
+- No unapproved A-01–A-09 choice remains. PR #12 merged into main at 1081c21; #2 prerequisites were verified before #3. The owner authorized scaffold #3 through a review-ready PR without merge.
 - Confirmed ownership baseline: retain the existing LICENSE attribution ©2026 Szymon Iwacz; review and merge remain with the repository owner. MIT, GitHub Actions, no automatic MVP releases, git revert rollback and generator recovery with explicit deletion are confirmed; no additional maintenance commitment is invented.
 - Delegated by owner, not a new approval question: #3 selects and justifies compatible versions; #5 selects and justifies ClickHouse library/transport, final sorting key and client timeouts; #7 records any analytics-specific timeout choice. Select within approved component/security/data boundaries and escalate only material scope changes.
-- Scaffold: record real commands and local binding; no runtime compatibility claims until tested. Profile is selected; product customization is prepared in #2/PR #12; no scaffold is created during this documentation task.
+- Scaffold: record real commands and local binding; no runtime compatibility claims until tested. Profile and customization are integrated; scaffold #3 supplies real commands, version pins and local binding. Later domain features remain separate goals.
 - Generator #9: define whether count is total or per application (recommended total), deterministic identity/time handling and repeated-run behavior before coding. received_at can vary; reproducibility concerns logical generated events.
 - Final benchmark #11: report query-cache configuration and warm-up procedure; first execution is not necessarily a cold OS/database cache. Explain that generator-direct insert does not benchmark HTTP ingestion throughput.
 
@@ -172,9 +172,9 @@ The smallest useful vertical slice is one application, HTTP ingestion and correc
 | Secrets, privacy, and sensitive data | decided | Synthetic only, digest-only keys, no key logging/browser exposure | Source #1 §§1,3,5,7; Security; D-002 |
 | Language, framework, and dependencies | decided | Ruby/Rails, RSpec, Compose, PostgreSQL and ClickHouse; versions/client selected and justified in delegated tasks | D-011/D-008; #3 versions, #5 ClickHouse library; active ruby-rails profile |
 | Environments and deployment | decided | Local demo only; public hosting excluded | Source #1 §5 and Out of scope; deployment mechanics in readiness |
-| Configuration | deferred | Environment config/example required; timeout policy accepted and values delegated; variable names follow scaffold/client | D-006/D-008; #3/#5 document actual config; does not block readiness-safe bootstrap or scaffold #3 |
-| Logging, monitoring, and errors | deferred | Secret-free failures/liveness vs readiness required; 400/422 contracts accepted; endpoint/log details pending scaffold | D-005/D-006; #3/#5 record details; does not block readiness-safe bootstrap or scaffold #3 |
-| Tests, lint, typecheck, performance | deferred | RSpec feature tests, real CH integration, CI and reproducible benchmark approved; actual commands/lint configuration need scaffold | D-011; greenfield deferral to #3; does not block definition or readiness-safe #2 |
+| Configuration | decided | Environment settings in .env.example; shell wrappers load local .env; PG/CH credentials separate from URLs; loopback services and finite probe deadlines | README; config/database.yml; DependencyReadiness; D-017 |
+| Logging, monitoring, and errors | decided | Separate /up and /ready; readiness 200/503 with safe states; only dependency/error class logged; no credentials/URLs/messages exposed | D-017; request/service/integration specs |
+| Tests, lint, typecheck, performance | decided | RSpec/RuboCop/real-service CI, Zeitwerk and assets build commands exist; static typecheck N/A; 1M benchmark remains #11 | README; bin/check; .github/workflows/ci.yml; D-018 |
 | Scale, reliability, and cost | decided | 1–1000 batch, 90-day query range, 1M demo; no latency gate/exactly-once | Source #1 §§3,4,6,8,9; numeric budgets unspecified, measure locally |
 | Supported platforms and compatibility | decided | Local Linux/macOS with Compose; compatible runtime versions delegated and must be tested | D-004/D-008; #3 pins versions and records tested matrix |
 | Accessibility and localization | decided | English UI/docs; labelled keyboard-usable controls, textual chart equivalents | D-004; #8 dashboard verification |
@@ -184,29 +184,23 @@ The smallest useful vertical slice is one application, HTTP ingestion and correc
 
 ## Project readiness
 
-Result: **PASS on the PR #12 branch under the greenfield scaffold exception**, subject to final human review and integration. All repository preparation checks below are satisfied; current-head remote CI and review evidence are recorded in the PR. This result does not mean the application exists or that product work is authorized. Bootstrap delivery remains pending owner review/merge; #3 must rerun target-branch dependency preflight after integration.
+Readiness from #2 is integrated by merged PR #12 (1081c21). Mandatory dependency preflight for #3 returned READY after checking the actual target-branch documents and remote merge, not merely the issue state. The owner authorized #3; no merge is authorized.
 
 | Check | Result | Notes |
 |---|---|---|
-| Definition coverage complete | PASS | All 26 areas have statuses and metadata; 13 requirements; A-01–A-09 approved |
-| No `blocking-question` remains | PASS | No outstanding owner-decision blocker; bounded technical details delegated to #3/#5/#7 |
-| All `deferred` items have reason and return trigger | PASS | Scaffold-dependent config, observability details and tooling return in #3/#5; no active-task blocker |
-| Template customization complete | PASS on PR branch | Product README and PulseLens role in AGENTS; existing tool adapters remain thin |
-| Stack profile selected or marked N/A | PASS | ruby-rails profile selected after D-011; reusable profiles unchanged |
-| Real project commands recorded | PASS — greenfield deferral | No application scaffold yet; #3 must create and record actual setup/run/test/build/lint/typecheck commands or justified N/A, plus initial product CI, before handoff |
-| Root README describes the product | PASS | Purpose, audience, current status, architecture, current checks, config limits, contribution links and license; planned behavior is labelled |
-| `AGENTS.md` describes repository role | PASS | PulseLens context and command deferral added; private workflow entrypoint and overlay preservation retained |
-| Bootstrap markers removed | PASS | No required bootstrap markers in tracked project files; reusable runtime examples and test fixtures excluded |
-| License and ownership decided | PASS | MIT, existing ©2026 Szymon Iwacz; owner reviews/merges (D-007) |
-| CI, branch rules, and approvals decided | PASS | GitHub Actions; branch/PR review and merge by owner; no automatic MVP release; git revert rollback; no settings mutation |
-| Project ready for first product task | PASS on PR branch | Scaffold #3 may be prepared only after owner review/merge, verified #2 prerequisites on target branch and separate execution authorization |
+| Definition coverage complete | PASS | All 26 areas classified; A-01–A-09 approved; 13 MVP requirements |
+| No `blocking-question` remains | PASS | No owner-decision blocker for scaffold #3 |
+| All `deferred` items have reason and return trigger | PASS | Later event client/schema/analytics choices return in #5/#7; generator/benchmark details in #9/#11 |
+| Template customization complete | PASS | Product README and AGENTS context integrated; updated for real scaffold commands |
+| Stack profile selected or marked N/A | PASS | ruby-rails selected; reusable profiles unchanged |
+| Real project commands recorded | PASS | README/bin wrappers now document setup, run, specs, lint, autoload and assets build; static typecheck/JS build N/A |
+| Root README describes the product | PASS | Actual scaffold endpoints vs future domain behavior are explicit |
+| `AGENTS.md` describes repository role | PASS | Current scaffold role and real command locations; workflow entrypoint retained |
+| Bootstrap markers removed | PASS | No required markers in tracked project overlay |
+| License and ownership decided | PASS | MIT, existing copyright; human review/merge |
+| CI, branch rules, and approvals decided | PASS | GitHub Actions adapter + product jobs; no automatic release; git revert rollback |
+| Project ready for first product task | PASS | #2 integrated; #3 authorized and prepared for review; feature completion/CI evidence belongs to its PR |
 
 ## Readiness assessment — 2026-11-24
 
-Readiness-safe bootstrap for #2 is prepared in PR #12. This supersedes the earlier blocked assessment: the README and AGENTS customization gaps are resolved on this branch. No application behavior, schemas, dependencies or CI configuration were added.
-
-- **Decisions and scope:** A-01–A-09 approved; Ruby/Rails profile selected. Delegated versions/client/timeouts/sorting do not require a new clarification. Remaining future-task details are scoped and do not block scaffold preparation.
-- **Customization:** root README describes PulseLens and explicitly distinguishes planned features from existing repository checks. AGENTS describes the product and points to canonical context/workflow. Product overlay is trackable; reusable workflow files remain untracked/ignored. No required bootstrap markers remain. There is no validate-workflow-contracts workflow to switch from template mode; none was added solely for bootstrap.
-- **Validation:** shell syntax, executable-mode checks matching CI, adapter contract tests, workflow leak check, workflow doctor, decision/readiness contract coverage, local links/anchors and full-diff self-review. Current-head GitHub CI results and diff-risk are recorded in PR #12; no application test or performance result is claimed.
-- **Greenfield exception:** actual application commands, runtime versions, product service setup and service-backed CI belong to scaffold #3. Its handoff must record real commands or justified N/A. No throwaway packaging, fabricated commands or application implementation was created to satisfy readiness.
-- **Review/integration:** owner review and merge are pending. This is branch-level readiness, not evidence that #2 has reached main or that an open prerequisite can be ignored. Recheck the actual target branch before #3. A separate execution authorization is required; the current request explicitly prohibits product implementation and merge.
+Preflight for #3: READY against main 1081c21e670d05795ddc4a928d1e8d8a06ad91a4. Issue #2 is closed; PR #12 is merged into main; approved requirements, product README/AGENTS, active profile and the recorded greenfield command deferral exist on that target branch. Scaffold #3 fulfills that deferral with actual commands and service-backed CI rather than placeholders. Remaining feature prerequisites must be verified after #3 merges; nothing here authorizes execution of #4–#11 or agent merge.
