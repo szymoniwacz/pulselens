@@ -2,7 +2,7 @@
 
 PulseLens is an event analytics application built with Ruby on Rails and ClickHouse. It collects application events through an authenticated HTTP API and provides filtered analytics through a web dashboard.
 
-**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. Authenticated analytics are available. HTTP ingestion, dashboard, generator and full benchmarks remain planned.
+**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application creation and digest-only API authentication are implemented. Authenticated analytics are available. The synthetic event generator is available. HTTP ingestion, dashboard and full benchmarks remain planned.
 
 ## Architecture and versions
 
@@ -64,7 +64,7 @@ curl --get --fail http://127.0.0.1:3000/api/v1/analytics \
   --data-urlencode 'platform=ios'
 ```
 
-The response contains integer `total_events`, `unique_users`, `daily` (objects with `date`, `events`, `active_users`) and `top_events` (objects with `name`, `count`). Before generating data, the counters and daily buckets are zero and the top list is empty. The generator is planned in #9. The integration specs insert synthetic fixtures directly into ClickHouse.
+The response contains integer `total_events`, `unique_users`, `daily` (objects with `date`, `events`, `active_users`) and `top_events` (objects with `name`, `count`). For an application without events, the counters and daily buckets are zero and the top list is empty. Use the generator below to populate a demo dataset.
 
 `from` and `to` are required ISO-8601 timestamps with `Z` or an explicit numeric offset; UTC years 1900–2299, seconds and optional fractional seconds (up to nine digits). The range must be positive and no longer than 90 elapsed days. Both bounds are normalized to UTC and rounded up to the next stored millisecond when needed, preserving inclusive-from/exclusive-to semantics. Daily buckets use UTC dates intersecting the original range, including partial days but excluding an exact-midnight end date. Optional filters: nonblank `name` up to 128 UTF-8 bytes, `platform` (web/ios/android/unknown), and uppercase ISO 3166-1 alpha-2 `country` or `unknown`. Filters combine with AND. Empty or invalid filter values return 422; missing/invalid credentials return 401; unavailable storage returns 503. Unknown query parameters cannot override the authenticated application identity.
 
@@ -161,15 +161,58 @@ The internal `ClickhouseClient#insert_events` takes normalized symbol-keyed even
 
 Run `RUN_SERVICE_SPECS=1 bin/check` after setup. Storage integration tests use unique synthetic application IDs in the test database, and sorting experiments remove only their own unique test tables. Do not point test configuration at shared/production data.
 
+## Generate synthetic data
+
+After setup, create two distinct demo applications with `applications:create` as documented above. Save both UUIDs and their API keys privately. Set `APP_ONE_ID` and `APP_TWO_ID` to those UUIDs (not the API keys). In a shell with the local `.env` exported:
+
+```bash
+RAILS_ENV=development EVENT_COUNT=1000000 SEED=42 \
+  FROM=2026-11-01T00:00:00Z TO=2026-12-01T00:00:00Z \
+  APPLICATION_IDS="$APP_ONE_ID,$APP_TWO_ID" bin/rails events:generate
+```
+
+`EVENT_COUNT` is the **total** across exactly two existing applications, minimum two; the first receives about two-thirds and the second one-third. The ordered UUID pair is part of the dataset identity. The seed is an unsigned 64-bit integer. The range is half-open, timezone-bearing ISO-8601, within UTC years 1900–2299 and must contain at least one stored millisecond; unlike analytics, generation is not limited to 90 days. Use the saved key for either application with the analytics curl example above (adjust dates to query the generated range).
+
+Generator version 1 uses Ruby's seeded `Random` on the pinned Ruby version, weighted time/user/name/platform/country selection and deterministic UUIDs from SHA-256 of the run identity and ordinal. Identical normalized count, seed, millisecond range, ordered application mapping and generator version reproduce the same logical rows, regardless of batch size. `received_at` records the time of the run and is excluded from logical equality. Only synthetic identifiers and properties are used.
+
+The generator streams at most 10,000 rows per batch through the existing synchronous ClickHouse client; the entire dataset is never retained. It prints confirmed event count, batch limit and elapsed time. Repeated runs append duplicate logical events, so use fresh demo applications for isolated measurements. No implicit deletion, reset or retry occurs. A failed batch stops generation; the printed confirmed count is a lower bound because the last write may have committed. Never blindly retry an ambiguous write.
+
+### Verify a million events
+
+The verification runner creates two new isolated test applications, invokes the real generator command and checks exact stored counts, distinct event IDs, returning users, dimensions and date range using ClickHouse. It does not print API keys or delete data. With local test services prepared and the environment exported:
+
+```bash
+RAILS_ENV=test bin/rails runner scripts/verify-generator.rb
+```
+
+On Linux, prefix with `/usr/bin/time -v` to record wall time and peak generator-process RSS (not ClickHouse server memory); on macOS use `/usr/bin/time -l`. The separate Generator verification GitHub Actions workflow runs this against real services for relevant pull requests and supports manual dispatch after merge. No latency target is asserted. This verifies the direct insert path, **not HTTP ingestion throughput**. A separate HTTP ingestion example remains pending #6; no unimplemented endpoint is advertised.
+
+### Observed million-event verification
+
+[GitHub Actions run 45628527347](https://github.com/szymoniwacz/pulselens/actions/runs/45628527347), 2026-11-25, commit `f2f8098`, generator v1. GitHub-hosted Ubuntu 26.04 x86_64 (image 20261116.88.1), Ruby 3.4.13, Rails 8.1.4.1, PostgreSQL 17.12 and ClickHouse 26.8.46.6; test database, seed 42, UTC range `[2026-11-01T00:00:00Z, 2026-12-01T00:00:00Z)`. The ordered application mapping for this run is recorded in the job log (first `c74b5045-3a09-41f0-8f23-68f1e4429ad5`, second `41907a71-eec0-4b4d-a8d0-d50eb1b180d6`).
+
+| Metric | Observed value |
+|---|---:|
+| Confirmed events / distinct event UUIDs | 1,000,000 / 1,000,000 |
+| Events per application (first / second) | 666,666 / 333,334 |
+| Unique synthetic users per application | 256 |
+| Event names / platforms / countries per application | 4 / 3 / 5 |
+| Batches / maximum rows per batch | 100 / 10,000 |
+| Generation and synchronous insertion elapsed | 11.019 s |
+| Rails runner wall time, including verification | 12.38 s |
+| Peak runner-process RSS | 144,120 KiB (140.74 MiB) |
+
+The SQL verification confirmed all expected counts and UTC bounds. This is a single CI observation, not a local workstation run, a memory-scaling experiment, a server-memory measurement or an HTTP/analytics benchmark. A fresh application mapping changes event UUIDs; repeat an identical mapping and seed to reproduce logical events, but remember that inserts append duplicates. Query benchmarking remains in #11.
+
 ## Planned MVP and limitations
 
-The remaining flow is: create a demo application/key → submit synthetic batches → inspect exact application-scoped analytics → generate a reproducible million-event dataset and record query measurements. See [requirements](.ai/docs/project-requirements.md) and the [roadmap](.ai/project/roadmap.md).
+The remaining full MVP work includes HTTP ingestion, the dashboard, cross-system coverage and reproducible query measurements. See [requirements](.ai/docs/project-requirements.md) and the [roadmap](.ai/project/roadmap.md).
 
 - Local demo only: no public hosting, user accounts, roles or dashboard login.
 - No real personal data, provider integrations, Kafka, queues or separate frontend.
 - No deduplication or exactly-once guarantee. Inserts do not retry automatically: lost responses can leave writes unknown and repeated submissions can increase counters.
 - No funnels, cohorts, retention/revenue analytics or materialized views.
-- No performance results yet. Later benchmarks will document exact queries, dataset/environment and first/subsequent executions, without unsupported PostgreSQL comparisons.
+- No analytics query benchmark results yet. Later benchmarks will document exact queries, dataset/environment and first/subsequent executions, without unsupported PostgreSQL comparisons.
 
 ## Project context and contribution
 

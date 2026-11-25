@@ -1,0 +1,45 @@
+name: Generator verification
+
+on:
+  pull_request:
+    paths:
+      - app/services/synthetic_event_generator.rb
+      - app/services/clickhouse_client.rb
+      - app/models/application.rb
+      - lib/tasks/synthetic_events.rake
+      - scripts/verify-generator.rb
+      - .github/workflows/generator-verification.yml
+      - db/clickhouse/**
+      - compose.yaml
+      - Gemfile.lock
+  workflow_dispatch:
+
+jobs:
+  million-events:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RAILS_ENV: test
+      POSTGRES_USER: pulselens
+      POSTGRES_PASSWORD: ci-only-postgres
+      CLICKHOUSE_USER: pulselens
+      CLICKHOUSE_PASSWORD: ci-only-clickhouse
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Prepare real database services
+        run: |
+          touch .env
+          env -u RAILS_ENV bin/setup
+      - name: Generate and verify one million events
+        run: /usr/bin/time -v bin/rails runner scripts/verify-generator.rb
+      - name: Dependency diagnostics
+        if: failure()
+        run: docker compose logs --tail 50
+      - name: Stop services without deleting volumes
+        if: always()
+        run: docker compose down
