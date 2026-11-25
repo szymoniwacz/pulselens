@@ -55,12 +55,15 @@ module QueryBenchmark
       raise ArgumentError, "Both benchmark applications must exist"
     end
 
+    # The generator writes this exact compact JSON string. Compare it directly
+    # to avoid requiring simdjson on older x86-64 processors.
+    expected_properties = JSON.generate("generator_version" => 1, "synthetic" => true)
     ids.zip([ 666_666, 333_334 ]).map do |id, expected|
-      row = client.query(<<~SQL, bindings: { application: id }).fetch(0)
+      row = client.query(<<~SQL, bindings: { application: id, expected_properties: expected_properties }).fetch(0)
         SELECT count() AS events, uniqExact(event_id) AS event_ids, uniqExact(user_id) AS users,
                uniqExact(name) AS names, uniqExact(platform) AS platforms, uniqExact(country) AS countries,
                min(occurred_at) AS first_event, max(occurred_at) AS last_event,
-               countIf(JSONExtractUInt(properties, 'generator_version') != 1 OR NOT JSONExtractBool(properties, 'synthetic')) AS unexpected_properties
+               countIf(properties != {expected_properties:String}) AS unexpected_properties
         FROM events WHERE application_id = {application:UUID}
       SQL
       counts = %w[events event_ids users names platforms countries unexpected_properties].to_h { |key| [ key, Integer(row.fetch(key)) ] }
