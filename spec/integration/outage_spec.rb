@@ -13,6 +13,13 @@ RSpec.describe "Real dependency outage", :outage, type: :request do
     expect(response.parsed_body["checks"][other]).to eq("ok")
   end
 
+  if ENV["EXPECT_UNAVAILABLE"] == "postgresql"
+    it "cannot authenticate when PostgreSQL is stopped" do
+      header = "Bearer #{ApplicationApiKey.generate}"
+      expect { Application.authenticate_bearer(header) }.to raise_error(ActiveRecord::ActiveRecordError)
+    end
+  end
+
   if ENV["EXPECT_UNAVAILABLE"] == "clickhouse"
     it "fails the event client safely while ClickHouse is stopped" do
       expect { ClickhouseClient.new.query("SELECT 1") }.to raise_error(
