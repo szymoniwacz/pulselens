@@ -2,7 +2,7 @@
 
 PulseLens is a small Ruby on Rails event analytics demo for learning ClickHouse and discussing backend design during recruitment. It is for a developer running a local synthetic-data demo and a reviewer exploring the architecture, tests and measurements.
 
-**Status:** runnable Rails scaffold and local infrastructure. `/up` and `/ready` are implemented. Application/key creation, event ingestion, analytics, dashboard, generator and benchmarks remain planned in [issues #4–#11](.ai/project/roadmap.md).
+**Status:** Rails scaffold, local infrastructure and versioned ClickHouse event storage/client. Application/key creation, HTTP ingestion, analytics, dashboard, generator and full benchmarks remain planned.
 
 ## Architecture and versions
 
@@ -14,9 +14,9 @@ PulseLens is a small Ruby on Rails event analytics demo for learning ClickHouse 
 | Docker Compose | v2 with `up --wait` | Local dependencies and persistent database volumes |
 | RSpec Rails | 8.1.0 | Request, service and real-database integration tests |
 
-The current readiness probe only runs `SELECT 1` against each store. There is no event client, schema or domain model yet. SQL aggregation and shared dashboard/API queries belong to later goals. There are no queues, workers or cross-database transactions.
+Readiness still runs `SELECT 1` against each store. The internal event client and schema now support synchronous inserts and typed queries; application authentication, HTTP endpoints and shared analytics queries belong to later goals. There are no queues, workers or cross-database transactions.
 
-Versions and dependency rationale are recorded in [project decisions](.ai/project/decisions.md). Gem dependencies are locked in `Gemfile.lock`; runtime and service versions are fixed in `.ruby-version` and `compose.yaml`. The ClickHouse analytics library, event schema and sorting key remain for issue #5.
+Versions and dependency rationale are recorded in [project decisions](.ai/project/decisions.md). Gem dependencies are locked in `Gemfile.lock`; runtime and service versions are fixed in `.ruby-version` and `compose.yaml`. The ClickHouse storage boundary uses Ruby's existing Net::HTTP and JSON libraries, without adding a gem.
 
 ## Clean local setup
 
@@ -35,7 +35,7 @@ bin/setup
 bin/dev
 ```
 
-`bin/setup` installs the locked gems into `vendor/bundle`, starts the Compose databases and prepares the empty development/test PostgreSQL databases. It does not reset an existing database or delete volumes. If `.env` is absent it creates the example and stops for configuration. `bin/dev` starts Rails on **127.0.0.1:3000**. Database ports are also published on loopback only (PostgreSQL 5432, ClickHouse HTTP 8123); no ClickHouse native port is published. If a port is occupied, stop the conflicting local service or adjust the documented configuration before starting.
+`bin/setup` installs the locked gems into `vendor/bundle`, starts the Compose databases and prepares the development/test PostgreSQL databases and applies the versioned ClickHouse schemas. It does not reset an existing database or delete volumes. If `.env` is absent it creates the example and stops for configuration. `bin/dev` starts Rails on **127.0.0.1:3000**. Database ports are also published on loopback only (PostgreSQL 5432, ClickHouse HTTP 8123); no ClickHouse native port is published. If a port is occupied, stop the conflicting local service or adjust the documented configuration before starting.
 
 ## Liveness and readiness
 
@@ -46,7 +46,7 @@ curl --fail http://127.0.0.1:3000/ready
 
 `/up` returns 200 when Rails is running without contacting either database. `/ready` returns JSON and 200 only after successful PostgreSQL and authenticated ClickHouse queries; otherwise it returns 503 with per-dependency `ok`/`unavailable` states. Responses and probe logs omit credentials, connection URLs and exception messages. Readiness responses are not cached.
 
-Finite bootstrap limits: PostgreSQL application-pool wait/connect timeout is 2 seconds and server statement timeout is 1 second. Readiness uses a separate short-lived PostgreSQL connection with a 2-second client budget for name resolution, handshake and `SELECT 1`. It owns the connection before interruptible communication starts and always closes it, including on a stalled handshake or query; it never borrows or damages application-pool connections. ClickHouse has 2-second HTTP open/read/write limits and a 2-second deadline for the complete request, including continuously arriving partial responses, with automatic retries disabled and socket cleanup on interruption. The stores are checked sequentially, so these are not a 2-second deadline for the combined endpoint. The event client's insert/query limits will be designed in issue #5.
+Finite bootstrap limits: PostgreSQL application-pool wait/connect timeout is 2 seconds and server statement timeout is 1 second. Readiness uses a separate short-lived PostgreSQL connection with a 2-second client budget for name resolution, handshake and `SELECT 1`. It owns the connection before interruptible communication starts and always closes it, including on a stalled handshake or query; it never borrows or damages application-pool connections. ClickHouse has 2-second HTTP open/read/write limits and a 2-second deadline for the complete request, including continuously arriving partial responses, with automatic retries disabled and socket cleanup on interruption. The stores are checked sequentially, so these are not a 2-second deadline for the combined endpoint. The event client uses separate 2s connection, 15s whole-query and 30s whole-insert deadlines.
 
 ## Checks and build
 
@@ -109,7 +109,17 @@ docker compose down --volumes
 bin/setup
 ```
 
-Do not run this against shared data. There are no event tables to rebuild yet; versioned ClickHouse schema setup belongs to issue #5 and synthetic regeneration to issue #9. No automatic TTL, reset, backup service or production deployment is included.
+Do not run this against shared data. The setup command applies versioned ClickHouse SQL again; synthetic regeneration belongs to issue #9. No automatic TTL, reset, backup service or production deployment is included.
+
+## ClickHouse event storage
+
+Development and test use separate databases, `pulselens_development` and `pulselens_test`. Setup applies `db/clickhouse/001_create_events.sql`, an idempotent versioned statement, without dropping or truncating data. Later schema versions must also be safe to reapply. Run `RAILS_ENV=development bin/rails clickhouse:setup` (or test) in a shell with the documented environment exported to apply explicitly. A single local operator runs setup; it is not a concurrent migration service. Existing volumes keep their data; an explicitly authorized full local rebuild uses the destructive reset above.
+
+The events table uses MergeTree, monthly UTC partitions, UUID application/event IDs, DateTime64(3, 'UTC') timestamps, String names/users/properties and LowCardinality(String) platform/country. JSON properties are serialized once as JSON text in a String column. The selected initial sorting key is `(application_id, occurred_at, name, event_id)`: application and bounded date filters are mandatory, whereas name is optional. The comparison test exercises both this and the name-first candidate with equal synthetic distributions and prints EXPLAIN index/granule evidence. Actual evidence is required in CI before review-ready; the test does not assert arbitrary latency or superiority.
+
+The internal `ClickhouseClient#insert_events` takes normalized symbol-keyed event hashes (including UTC-convertible Time values and a properties object). It sends one synchronous JSONEachRow insert. `#query(sql, bindings: {})` accepts trusted developer-authored SQL with typed placeholders such as `{application:UUID}` and passes escaped values as HTTP parameters, never SQL interpolation. Neither method is a public API yet. The client uses no ambient proxy or automatic retry, buffers the server response, rejects invalid or incomplete results and returns generic errors without raw server messages or causes. Whole-request deadlines are 15 seconds for queries/DDL and 30 seconds for inserts, connection deadline 2 seconds. Server execution limits are best-effort; a timed-out write may have committed. Repeating it can append duplicates.
+
+Run `RUN_SERVICE_SPECS=1 bin/check` after setup. Storage integration tests use unique synthetic application IDs in the test database, and sorting experiments remove only their own unique test tables. Do not point test configuration at shared/production data.
 
 ## Planned MVP and limitations
 
@@ -117,7 +127,7 @@ The remaining flow is: create a demo application/key → submit synthetic batche
 
 - Local demo only: no public hosting, user accounts, roles or dashboard login.
 - No real personal data, provider integrations, Kafka, queues or separate frontend.
-- No deduplication or exactly-once guarantee. Future inserts will not retry automatically: lost responses can leave writes unknown and repeated submissions can increase counters.
+- No deduplication or exactly-once guarantee. Inserts do not retry automatically: lost responses can leave writes unknown and repeated submissions can increase counters.
 - No funnels, cohorts, retention/revenue analytics or materialized views.
 - No performance results yet. Later benchmarks will document exact queries, dataset/environment and first/subsequent executions, without unsupported PostgreSQL comparisons.
 
